@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
@@ -13,13 +13,16 @@ export default function AppShell({ children }) {
 
 function AppShellContent({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const isAuthPage = pathname === '/login';
 
   useEffect(() => {
-    if (!isAuthPage && !loading && !user) window.location.replace('/login');
-  }, [isAuthPage, loading, user]);
+    // router.replace keeps the SPA alive; window.location.replace forced a full document
+    // reload and threw away every cached snapshot on the way to /login.
+    if (!isAuthPage && !loading && !user) router.replace('/login');
+  }, [isAuthPage, loading, user, router]);
 
   if (isAuthPage) return <main className="min-h-screen">{children}</main>;
   if (loading) return <main className="min-h-screen" aria-busy="true" />;

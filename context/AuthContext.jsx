@@ -9,7 +9,10 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // Must start true: AppShellContent renders inside this provider, and React runs child
+  // effects before parent effects. Starting at false lets the route guard evaluate
+  // `!loading && !user` and bounce to /login before initAuth has read the saved token.
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
