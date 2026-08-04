@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { 
   X, 
   ShoppingBag, 
@@ -13,7 +14,8 @@ import {
   Layers,
   Star,
   CheckCircle2,
-  DollarSign
+  DollarSign,
+  ExternalLink
 } from 'lucide-react';
 import { formatIDR, formatNumber } from '../lib/utils';
 
@@ -151,6 +153,19 @@ export default function ProductDetailModal({ isOpen, onClose, product }) {
               This product does not have sub-model variations configured.
             </div>
           )}
+        </div>
+
+        {/* Modal Action Footer */}
+        <div className="mt-6 pt-5 border-t border-pink-100 flex items-center justify-between">
+          <span className="text-xs text-slate-500 font-medium">Buka halaman detail untuk AI Copywriter, Pricing Simulator, & Restock Playbook.</span>
+          <Link
+            href={`/product/${product.shopeeItemId}`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-cute hover:bg-rose-700 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Buka AI Analytics Suite Lengkap</span>
+            <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+          </Link>
         </div>
       </div>
     </div>

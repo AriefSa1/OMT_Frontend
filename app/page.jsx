@@ -9,6 +9,7 @@ import MetricCard from '../components/MetricCard';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
+import DailyBriefingCard from '../components/DailyBriefingCard';
 import { fetchDashboardOverview, fetchSyncLogs } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
@@ -61,6 +62,8 @@ export default function DashboardOverview() {
           <MetricCard title="Selisih stok" value={formatNumber(data?.kpis?.discrepanciesAlerts)} icon={Boxes} tone={Number(data?.kpis?.discrepanciesAlerts) ? 'amber' : 'emerald'} subtitle={`${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`} />
         </div>
       )}
+
+      <DailyBriefingCard />
 
       <div className="grid gap-6 xl:grid-cols-3">
         <section className="surface p-5 xl:col-span-2">

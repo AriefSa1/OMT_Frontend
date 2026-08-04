@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, LayoutDashboard, Megaphone, Settings, Store, X } from 'lucide-react';
+import { BarChart3, Boxes, CheckSquare, LayoutDashboard, Megaphone, Settings, Store, TrendingUp, X } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Beranda', href: '/', icon: LayoutDashboard },
   { label: 'Katalog Shopee', href: '/shopee', icon: Store },
+  { label: 'Performa Produk', href: '/shopee/performance', icon: TrendingUp },
   { label: 'Iklan', href: '/ads', icon: Megaphone },
   { label: 'Gudang', href: '/warehouse', icon: Boxes },
   { label: 'Pusat Tindakan', href: '/actions', icon: CheckSquare },
@@ -14,7 +15,9 @@ const NAV_ITEMS = [
 ];
 
 function isActivePath(pathname, href) {
-  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+  if (href === '/') return pathname === '/';
+  if (href === '/shopee') return pathname === '/shopee';
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function Sidebar({ mobile = false, onClose }) {

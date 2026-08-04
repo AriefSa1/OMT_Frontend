@@ -34,6 +34,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline-offset: 2px;
 }
 
+.ui-select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.7rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  color: var(--ink);
+  padding-right: 2.5rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.ui-select:hover { border-color: #b8c0cc; background-color: #fcfcfd; }
+.ui-select:focus { border-color: var(--rose); box-shadow: 0 0 0 3px #fce7f3; outline: none; }
+.ui-select:disabled { cursor: not-allowed; background-color: #f2f4f7; color: #98a2b3; opacity: 1; }
+.ui-select option { background: #ffffff; color: var(--ink); }
+
 ::selection { background: #fce7f3; color: #831843; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }

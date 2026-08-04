@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, CircleDollarSign, MousePointerClick, RefreshCw, Target } from 'lucide-react';
+import { ArrowUpDown, BarChart3, CircleDollarSign, MousePointerClick, RefreshCw, Target } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
+import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
 import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
@@ -15,13 +16,15 @@ export default function AdsPage() {
   const [ads, setAds] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [campaignSort, setCampaignSort] = useState('spend');
+  const [campaignDirection, setCampaignDirection] = useState('desc');
 
   const loadAds = useCallback(async () => {
     setLoading(true);
-    const response = await fetchShopeeAds();
+    const response = await fetchShopeeAds({ sort_by: campaignSort, direction: campaignDirection });
     setAds(response?.success ? response : null);
     setLoading(false);
-  }, []);
+  }, [campaignSort, campaignDirection]);
   useEffect(() => { loadAds(); }, [loadAds]);
   useSnapshotRefresh(loadAds);
 
@@ -45,8 +48,10 @@ export default function AdsPage() {
         <MetricCard title="CTR" value={formatPercent(ads?.ctr)} icon={MousePointerClick} tone="slate" subtitle={`${formatNumber(ads?.clicks)} klik dari ${formatNumber(ads?.impressions)} impresi`} />
       </div>
 
+      <AdsAIOptimizerCard adsData={ads} />
+
       <section className="surface overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold text-slate-900">Kampanye aktif</h2><p className="mt-1 text-xs text-slate-500">Urut berdasarkan biaya pada snapshot terakhir.</p></div><Link href="/actions" className="text-xs font-semibold text-rose-700 hover:text-rose-800">Buka Pusat Tindakan</Link></div>
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold text-slate-900">Kampanye aktif</h2><p className="mt-1 text-xs text-slate-500">Urutan diterapkan pada seluruh kampanye sebelum ditampilkan.</p></div><div className="flex flex-wrap items-center gap-2"><label className="sr-only" htmlFor="campaign-sort">Urutkan kampanye</label><select id="campaign-sort" value={campaignSort} onChange={(event) => setCampaignSort(event.target.value)} className="ui-select h-9 rounded-md px-3 text-xs font-semibold text-slate-700"><option value="spend">Biaya</option><option value="sales">Penjualan</option><option value="roas">ROAS</option><option value="ctr">CTR</option><option value="dailyBudget">Anggaran/hari</option><option value="name">Nama</option><option value="state">Status</option></select><button type="button" title="Balik arah urutan" aria-label="Balik arah urutan" onClick={() => setCampaignDirection((value) => value === 'asc' ? 'desc' : 'asc')} className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowUpDown className="h-4 w-4" />{campaignDirection === 'asc' ? 'Naik' : 'Turun'}</button><Link href="/actions" className="text-xs font-semibold text-rose-700 hover:text-rose-800">Buka Pusat Tindakan</Link></div></div>
         {!loading && !ads?.topCampaigns?.length ? <EmptyState title="Data kampanye belum tersedia" message={ads?.meta?.message || 'Jalankan Sync iklan setelah sesi Shopee terhubung.'} /> : <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Kampanye</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 text-right font-medium">Anggaran/hari</th><th className="px-4 py-3 text-right font-medium">Biaya</th><th className="px-4 py-3 text-right font-medium">Penjualan</th><th className="px-4 py-3 text-right font-medium">CTR</th><th className="px-5 py-3 text-right font-medium">ROAS</th></tr></thead><tbody className="divide-y divide-slate-100">
           {loading && Array.from({ length: 7 }).map((_, index) => <tr key={index}><td colSpan="7" className="px-5 py-3"><div className="skeleton h-8 rounded-md" /></td></tr>)}
           {ads?.topCampaigns?.map((campaign) => <tr key={campaign.id || campaign.campaignId} className="hover:bg-slate-50"><td className="px-5 py-3"><p className="max-w-72 truncate font-semibold text-slate-800">{campaign.name}</p><p className="mt-1 text-[11px] text-slate-500">{campaign.type}</p></td><td className="px-4 py-3"><StatusBadge status={campaign.state === 'ongoing' ? 'Segar' : 'Tertunda'} compact /></td><td className="px-4 py-3 text-right text-slate-700">{formatIDR(campaign.dailyBudget)}</td><td className="px-4 py-3 text-right font-medium text-slate-700">{formatIDR(campaign.spend)}</td><td className="px-4 py-3 text-right text-slate-700">{formatIDR(campaign.sales)}</td><td className="px-4 py-3 text-right text-slate-700">{formatPercent(campaign.ctr)}</td><td className="px-5 py-3 text-right font-semibold text-slate-900">{Number(campaign.roas || 0).toFixed(2)}x</td></tr>)}
