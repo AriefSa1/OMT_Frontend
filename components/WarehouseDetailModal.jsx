@@ -159,7 +159,9 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
     : hasActiveWarehouseOptions
       ? 0
       : Number(product?.totalStock || 0);
-  const stockValuation = (product?.priceMin || product?.priceMax || 0) * displayTotalStock;
+  // Unpriced SKUs have an unknown valuation, not a zero one.
+  const unitPrice = product?.priceMin ?? product?.priceMax ?? null;
+  const stockValuation = unitPrice === null ? null : unitPrice * displayTotalStock;
 
   const filteredMovements = movements.filter((m) => {
     if (filterType === 'IN') return m.type === 'IN';

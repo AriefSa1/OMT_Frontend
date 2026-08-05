@@ -59,7 +59,18 @@ export default function DashboardOverview() {
           <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" subtitle={historyAvailable ? 'Dari endpoint ringkasan pesanan' : 'Endpoint ringkasan pesanan belum tersedia'} />
           <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)}` : 'Tidak dibuat estimasi'} />
           <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
-          <MetricCard title="Selisih stok" value={formatNumber(data?.kpis?.discrepanciesAlerts)} icon={Boxes} tone={Number(data?.kpis?.discrepanciesAlerts) ? 'amber' : 'emerald'} subtitle={`${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`} />
+          {/* A null count means "not measurable" and must not render as a green all-clear. */}
+          <MetricCard
+            title="Selisih stok"
+            value={formatNumber(data?.kpis?.discrepanciesAlerts)}
+            icon={Boxes}
+            tone={data?.kpis?.discrepanciesAlerts === null || data?.kpis?.discrepanciesAlerts === undefined
+              ? 'slate'
+              : Number(data.kpis.discrepanciesAlerts) ? 'amber' : 'emerald'}
+            subtitle={data?.reconciliationTrust && !data.reconciliationTrust.reliable
+              ? data.reconciliationTrust.message
+              : `${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`}
+          />
         </div>
       )}
 

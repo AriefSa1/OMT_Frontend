@@ -402,7 +402,7 @@ export default function WarehousePage() {
 
                 {inventory?.items?.map((item) => {
                   const recon = item.reconciliation;
-                  const price = item.priceMin || item.priceMax || 0;
+                  const price = item.priceMin ?? item.priceMax ?? null;
                   return (
                     <tr
                       key={`${item.sku}-${item.warehouseId ?? 'all'}`}

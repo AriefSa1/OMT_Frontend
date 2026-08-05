@@ -125,11 +125,13 @@ export default function ShopeeProductPerformancePage() {
       p.visitors,
       p.views,
       p.addToCartUnits,
-      p.addToCartRate.toFixed(2),
+      // Unguarded .toFixed() threw inside the click handler and aborted the export with
+      // no message whenever a row lacked a rate — the snapshot path can omit them.
+      Number.isFinite(Number(p.addToCartRate)) ? Number(p.addToCartRate).toFixed(2) : '',
       p.confirmedOrders,
       p.confirmedUnits,
       p.confirmedSales,
-      p.conversionRate.toFixed(2),
+      Number.isFinite(Number(p.conversionRate)) ? Number(p.conversionRate).toFixed(2) : '',
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -143,14 +145,10 @@ export default function ShopeeProductPerformancePage() {
     document.body.removeChild(link);
   };
 
-  const summary = data?.summary || {
-    totalSales: 0,
-    totalOrders: 0,
-    totalUnits: 0,
-    totalViews: 0,
-    totalVisitors: 0,
-    averageConversionRate: 0,
-  };
+  // No zero-filled fallback. When the request fails, `data` is null and these become
+  // undefined, which the formatters render as "Belum tersedia" — previously a failed
+  // request showed "Rp 0 / 0 pesanan / 0 UV", i.e. a day with no sales.
+  const summary = data?.summary;
 
   const isConnected = data?.dataSource !== 'EMPTY' && (data?.products?.length > 0 || data?.total > 0 || data?.live);
   const sourceLabel = data?.live
@@ -243,7 +241,7 @@ export default function ShopeeProductPerformancePage() {
             <div className="rounded-md bg-rose-50 p-2 text-rose-600"><Wallet className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
-            {loading ? <div className="skeleton h-7 w-32 rounded" /> : formatIDR(summary.totalSales)}
+            {loading ? <div className="skeleton h-7 w-32 rounded" /> : formatIDR(summary?.totalSales)}
           </div>
           <p className="mt-1 text-[11px] text-slate-500">Omset terkonfirmasi periode ini</p>
         </div>
@@ -254,10 +252,10 @@ export default function ShopeeProductPerformancePage() {
             <div className="rounded-md bg-blue-50 p-2 text-blue-600"><Package className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
-            {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary.totalOrders)} pesanan`}
+            {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary?.totalOrders)} pesanan`}
           </div>
           <p className="mt-1 text-[11px] text-slate-500">
-            {loading ? '...' : `${formatNumber(summary.totalUnits)} unit barang terjual`}
+            {loading ? '...' : `${formatNumber(summary?.totalUnits)} unit barang terjual`}
           </p>
         </div>
 
@@ -267,10 +265,10 @@ export default function ShopeeProductPerformancePage() {
             <div className="rounded-md bg-indigo-50 p-2 text-indigo-600"><Users className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
-            {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary.totalVisitors)} UV`}
+            {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary?.totalVisitors)} UV`}
           </div>
           <p className="mt-1 text-[11px] text-slate-500">
-            {loading ? '...' : `${formatNumber(summary.totalViews)} kali dilihat`}
+            {loading ? '...' : `${formatNumber(summary?.totalViews)} kali dilihat`}
           </p>
         </div>
 
@@ -280,7 +278,7 @@ export default function ShopeeProductPerformancePage() {
             <div className="rounded-md bg-emerald-50 p-2 text-emerald-600"><TrendingUp className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
-            {loading ? <div className="skeleton h-7 w-16 rounded" /> : formatPercent(summary.averageConversionRate)}
+            {loading ? <div className="skeleton h-7 w-16 rounded" /> : formatPercent(summary?.averageConversionRate)}
           </div>
           <p className="mt-1 text-[11px] text-slate-500">Pesanan / Pengunjung (UV)</p>
         </div>
