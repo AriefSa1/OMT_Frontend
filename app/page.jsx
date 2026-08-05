@@ -45,6 +45,8 @@ export default function DashboardOverview() {
   useSnapshotRefresh(loadData);
 
   const historyAvailable = data?.history?.orderAvailable;
+  // The KPI is one day, not a running total — name the day so it cannot be read as a sum.
+  const latestDay = data?.salesTrend?.length ? data.salesTrend[data.salesTrend.length - 1].day : null;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -61,8 +63,8 @@ export default function DashboardOverview() {
 
       {loading ? <MetricLoading /> : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" subtitle={historyAvailable ? 'Dari endpoint ringkasan pesanan' : 'Endpoint ringkasan pesanan belum tersedia'} />
-          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)}` : 'Tidak dibuat estimasi'} />
+          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
+          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
           <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
           {/* A null count means "not measurable" and must not render as a green all-clear. */}
           <MetricCard
