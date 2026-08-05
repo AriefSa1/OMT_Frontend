@@ -115,6 +115,32 @@ export default function DashboardOverview() {
           subtitle={data?.categorySalesMeta?.message}
           message={data?.categorySalesMeta?.message}
         />
+
+        <section className="surface p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Pembatalan dan retur</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {data?.orderQuality?.days
+                  ? `${data.orderQuality.days} hari tersimpan (${data.orderQuality.from} s.d. ${data.orderQuality.to})`
+                  : 'Belum ada hari tersimpan.'}
+              </p>
+            </div>
+            <TriangleAlert className="h-5 w-5 text-slate-400" aria-hidden="true" />
+          </div>
+          {data?.orderQuality?.days ? (
+            <dl className="mt-5 space-y-4">
+              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Pesanan batal</dt><dd className="font-semibold text-slate-900">{formatNumber(data.orderQuality.cancelledOrders)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Nilai pesanan batal</dt><dd className="font-semibold text-slate-900">{formatIDR(data.orderQuality.cancelledSales)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Retur / refund</dt><dd className="font-semibold text-slate-900">{formatNumber(data.orderQuality.returnRefundOrders)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Nilai retur / refund</dt><dd className="font-semibold text-slate-900">{formatIDR(data.orderQuality.returnRefundSales)}</dd></div>
+            </dl>
+          ) : (
+            <p className="mt-5 text-sm leading-6 text-slate-500">{data?.orderQuality?.message}</p>
+          )}
+          {/* Shopee publishes no denominator for a cancellation rate, so none is shown. */}
+          <p className="mt-5 text-[11px] leading-5 text-slate-500">Angka absolut dari Seller Center. Persentase pembatalan tidak dihitung karena penyebutnya tidak tersedia.</p>
+        </section>
       </div>
     </div>
   );
