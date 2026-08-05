@@ -3,8 +3,9 @@
 import React from 'react';
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -58,6 +59,7 @@ export default function SalesChart({
         <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden="true" />GMV</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />Biaya iklan</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />Pesanan</span>
         </div>
       </div>
 
@@ -68,7 +70,10 @@ export default function SalesChart({
       ) : (
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            {/* Pesanan dipisahkan ke sumbu kanan: satuannya "pesanan" (puluhan), sedangkan
+                GMV dan biaya iklan rupiah (ratusan ribu). Satu sumbu bersama akan membuat
+                garis pesanan rata di dasar grafik dan tak terbaca. */}
+            <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#344054" stopOpacity={0.25} />
@@ -82,17 +87,28 @@ export default function SalesChart({
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e7ec" />
               <XAxis dataKey="day" axisLine={false} tickLine={false} minTickGap={26} tick={{ fill: '#667085', fontSize: 11 }} />
               <YAxis
+                yAxisId="rupiah"
                 axisLine={false}
                 tickLine={false}
                 width={54}
                 tick={{ fill: '#667085', fontSize: 11 }}
                 tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
               />
+              <YAxis
+                yAxisId="pesanan"
+                orientation="right"
+                axisLine={false}
+                tickLine={false}
+                width={34}
+                allowDecimals={false}
+                tick={{ fill: '#059669', fontSize: 11 }}
+              />
               <Tooltip content={<CustomTooltip />} />
               {/* connectNulls stays off: a day without an ads snapshot must stay a gap. */}
-              <Area type="monotone" dataKey="gmv" name="GMV" stroke="#344054" strokeWidth={2} fillOpacity={1} fill="url(#colorGmv)" />
-              <Area type="monotone" dataKey="adSpend" name="Biaya iklan" stroke="#d92d70" strokeWidth={2} fillOpacity={1} fill="url(#colorAd)" />
-            </AreaChart>
+              <Area yAxisId="rupiah" type="monotone" dataKey="gmv" name="GMV" stroke="#344054" strokeWidth={2} fillOpacity={1} fill="url(#colorGmv)" />
+              <Area yAxisId="rupiah" type="monotone" dataKey="adSpend" name="Biaya iklan" stroke="#d92d70" strokeWidth={2} fillOpacity={1} fill="url(#colorAd)" />
+              <Line yAxisId="pesanan" type="monotone" dataKey="orders" name="Pesanan" stroke="#059669" strokeWidth={2} dot={false} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       )}

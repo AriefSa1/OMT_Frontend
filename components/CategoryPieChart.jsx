@@ -11,6 +11,9 @@ export default function CategoryPieChart({
   // The caller knows what the shares were computed over; the chart must not guess it.
   subtitle,
   message,
+  // Asal angka: sumber, metrik, cakupan, dan dari mana kategorinya berasal. Ditampilkan
+  // sebagai catatan kaki supaya pembaca tidak perlu menebak panel ini menghitung apa.
+  provenance = null,
 }) {
   const slices = data.filter((entry) => Number.isFinite(Number(entry?.value)));
   // The centre used to print a constant "100%". Show the share the slices actually
@@ -66,6 +69,15 @@ export default function CategoryPieChart({
             ))}
           </ul>
         </>
+      )}
+
+      {provenance && (
+        <dl className="mt-4 space-y-1.5 border-t border-slate-200 pt-3 text-[11px] leading-5 text-slate-500">
+          <div><dt className="inline font-semibold text-slate-600">Sumber: </dt><dd className="inline">{provenance.source}</dd></div>
+          <div><dt className="inline font-semibold text-slate-600">Metrik: </dt><dd className="inline">{provenance.metric}</dd></div>
+          <div><dt className="inline font-semibold text-slate-600">Cakupan: </dt><dd className="inline">{provenance.scope}</dd></div>
+          <div><dt className="inline font-semibold text-slate-600">Kategori: </dt><dd className="inline">{provenance.categoryField}</dd></div>
+        </dl>
       )}
     </section>
   );

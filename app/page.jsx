@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Boxes, Package, ShoppingBag, Target, TriangleAlert } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
@@ -50,6 +50,7 @@ export default function DashboardOverview() {
   const historyAvailable = data?.history?.orderAvailable;
   // The KPI is one day, not a running total — name the day so it cannot be read as a sum.
   const latestDay = data?.salesTrend?.length ? data.salesTrend[data.salesTrend.length - 1].day : null;
+  const trend = data?.kpiTrend;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -64,11 +65,20 @@ export default function DashboardOverview() {
         </div>
       </PageHeader>
 
+      {trend?.previousDate && (
+        <p className="text-xs text-slate-500">
+          Statistik harian dibandingkan terhadap {trend.previousDate}.
+          {trend.currentIsPartial && ' Hari ini masih berjalan, jadi angkanya belum utuh — penurunan pada panah bisa jadi hanya karena harinya belum selesai.'}
+        </p>
+      )}
+
       {loading ? <MetricLoading /> : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
-          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
-          <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
+          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
+          <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" trend={trend?.roas} subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
+          <MetricCard title="Impresi iklan" value={formatNumber(data?.kpis?.impressions)} icon={Eye} tone="slate" trend={trend?.impressions} subtitle="Tayangan iklan pada snapshot iklan terakhir" />
+          <MetricCard title="Klik iklan" value={formatNumber(data?.kpis?.clicks)} icon={MousePointerClick} tone="slate" trend={trend?.clicks} subtitle={data?.kpis?.impressions ? `CTR ${formatPercent((Number(data.kpis.clicks) / Number(data.kpis.impressions)) * 100)}` : 'CTR belum dapat dihitung'} />
           {/* A null count means "not measurable" and must not render as a green all-clear. */}
           <MetricCard
             title="Selisih stok"
@@ -103,7 +113,7 @@ export default function DashboardOverview() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <section className="surface overflow-hidden xl:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Produk katalog teratas</h2><p className="mt-1 text-xs text-slate-500">Urut berdasarkan penjualan snapshot katalog.</p></div><Link href="/shopee" className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700">Buka katalog <ArrowRight className="h-3.5 w-3.5" /></Link></div>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Produk katalog teratas</h2><p className="mt-1 text-xs text-slate-500">Urut berdasarkan penjualan snapshot katalog.{data?.topProductsMeta?.message ? ` ${data.topProductsMeta.message}` : ''}</p></div><Link href="/shopee" className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700">Buka katalog <ArrowRight className="h-3.5 w-3.5" /></Link></div>
           {/* The table is what overflows, so the scroll container has to be the table's
               own wrapper — on the <section> the header scrolled with it. */}
           <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="border-y border-slate-200 bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Produk</th><th className="px-4 py-3 font-medium">Harga</th><th className="px-4 py-3 font-medium">Stok</th><th className="px-5 py-3 text-right font-medium">Penjualan</th></tr></thead><tbody className="divide-y divide-slate-100">
@@ -117,6 +127,7 @@ export default function DashboardOverview() {
           title="Pangsa penjualan per kategori"
           subtitle={data?.categorySalesMeta?.message}
           message={data?.categorySalesMeta?.message}
+          provenance={data?.categorySalesMeta?.provenance}
         />
 
         <section className="surface p-5">
@@ -141,8 +152,17 @@ export default function DashboardOverview() {
           ) : (
             <p className="mt-5 text-sm leading-6 text-slate-500">{data?.orderQuality?.message}</p>
           )}
+          {/* Asal angka dinyatakan eksplisit — sebelumnya panel ini tidak menjelaskan
+              pesanan batal/retur itu dihitung dari mana dan atas dasar apa. */}
+          {data?.orderQuality?.provenance && (
+            <dl className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-500">
+              <div><dt className="inline font-semibold text-slate-600">Sumber: </dt><dd className="inline">{data.orderQuality.provenance.source} <span className="font-mono">{data.orderQuality.provenance.endpoint}</span> (tipe pesanan: {data.orderQuality.provenance.orderType})</dd></div>
+              <div><dt className="inline font-semibold text-slate-600">Pesanan batal: </dt><dd className="inline">{data.orderQuality.provenance.cancelled}</dd></div>
+              <div><dt className="inline font-semibold text-slate-600">Retur / refund: </dt><dd className="inline">{data.orderQuality.provenance.returnRefund}</dd></div>
+            </dl>
+          )}
           {/* Shopee publishes no denominator for a cancellation rate, so none is shown. */}
-          <p className="mt-5 text-[11px] leading-5 text-slate-500">Angka absolut dari Seller Center. Persentase pembatalan tidak dihitung karena penyebutnya tidak tersedia.</p>
+          <p className="mt-3 text-[11px] leading-5 text-slate-500">Angka absolut dari Seller Center. Persentase pembatalan tidak dihitung karena penyebutnya tidak tersedia.</p>
         </section>
 
         <TrafficSourcePanel traffic={traffic} loading={loading} />
