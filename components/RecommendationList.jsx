@@ -34,7 +34,9 @@ export default function RecommendationList({
   const create = async (recommendation) => {
     setPendingId(recommendation.id);
     const response = await createTask(recommendation);
-    setMessage(response.message || response.error || 'Tugas diperbarui.');
+    setMessage(response.message || response.error || (response.success
+      ? 'Tugas dibuat dari rekomendasi ini. Tidak ada perubahan otomatis ke Seller Center.'
+      : 'Tugas tidak dapat dibuat.'));
     if (response.success) setCreatedIds((current) => new Set(current).add(recommendation.id));
     setPendingId('');
   };

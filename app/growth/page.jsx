@@ -10,7 +10,7 @@ import RecommendationList from '../../components/RecommendationList';
 import StatusBadge, { DataSourceNote, formatDataTime, formatSource } from '../../components/StatusBadge';
 import { fetchGrowthIntelligence } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
-import { formatIDR, formatNumber } from '../../lib/utils';
+import { emptyListReason, formatIDR, formatNumber } from '../../lib/utils';
 
 function Section({ title, description, children }) {
   return (
@@ -51,6 +51,7 @@ export default function GrowthIntelligencePage() {
 
   const weekly = data?.weeklyReport;
   const scorecardScore = data?.catalogScorecard?.score;
+  const reconciliationUnreliable = Boolean(data?.reconciliationTrust && !data.reconciliationTrust.reliable);
 
   return (
     <div className="space-y-8">
@@ -99,19 +100,26 @@ export default function GrowthIntelligencePage() {
               ? 'Skor hanya dihitung bila ada rekomendasi katalog.'
               : `Berdasarkan ${data?.catalogScorecard?.products?.length || 0} temuan katalog.`}
           />
+          {/* A count of 0 from an untrustworthy reconciliation is not "nothing to
+              restock" — it is "not measurable", and must not render as a clean zero. */}
           <MetricCard
             title="Rencana restock"
-            value={loading ? '—' : formatNumber(data?.restockPlan?.length)}
+            value={loading ? '—' : reconciliationUnreliable ? 'Belum tersedia' : formatNumber(data?.restockPlan?.length)}
             icon={Boxes}
-            tone={data?.restockPlan?.length ? 'amber' : 'slate'}
-            subtitle="Selisih stok gudang yang perlu ditindaklanjuti."
+            tone={!loading && !reconciliationUnreliable && data?.restockPlan?.length ? 'amber' : 'slate'}
+            subtitle={reconciliationUnreliable
+              ? data.reconciliationTrust.message
+              : 'Selisih stok gudang yang perlu ditindaklanjuti.'}
           />
         </div>
         <RecommendationList
           items={data?.catalogScorecard?.products || []}
           loading={loading}
           emptyTitle="Belum ada temuan katalog"
-          emptyMessage={data?.sources?.catalog?.message}
+          emptyMessage={emptyListReason(
+            data?.sources?.catalog,
+            'Tidak ada produk yang memenuhi kriteria CTR rendah, keranjang tanpa pesanan, atau risiko stok pada snapshot terakhir.',
+          )}
         />
       </Section>
 
@@ -120,7 +128,9 @@ export default function GrowthIntelligencePage() {
           items={data?.restockPlan || []}
           loading={loading}
           emptyTitle="Belum ada rencana restock"
-          emptyMessage={data?.sources?.warehouse?.message}
+          emptyMessage={data?.reconciliationTrust && !data.reconciliationTrust.reliable
+            ? data.reconciliationTrust.message
+            : emptyListReason(data?.sources?.warehouse, 'Tidak ada SKU dengan status selisih pada rekonsiliasi terakhir.')}
         />
       </Section>
 
@@ -129,7 +139,10 @@ export default function GrowthIntelligencePage() {
           items={data?.priceStrategies || []}
           loading={loading}
           emptyTitle="Belum ada usulan strategi harga"
-          emptyMessage={data?.sources?.catalog?.message}
+          emptyMessage={emptyListReason(
+            data?.sources?.catalog,
+            'Tidak ada produk dengan pembeli yang menambahkan ke keranjang tanpa pesanan terkonfirmasi pada snapshot terakhir.',
+          )}
         />
       </Section>
 
@@ -138,7 +151,10 @@ export default function GrowthIntelligencePage() {
           items={data?.adOpportunities || []}
           loading={loading}
           emptyTitle="Belum ada peluang iklan"
-          emptyMessage={data?.sources?.ads?.message}
+          emptyMessage={emptyListReason(
+            data?.sources?.ads,
+            'Tidak ada kampanye berbiaya yang CTR-nya di bawah 1% atau ROAS-nya di bawah 2x pada snapshot terakhir.',
+          )}
         />
       </Section>
 
@@ -147,7 +163,10 @@ export default function GrowthIntelligencePage() {
           items={data?.listingExperiments || []}
           loading={loading}
           emptyTitle="Belum ada eksperimen listing"
-          emptyMessage={data?.sources?.catalog?.message}
+          emptyMessage={emptyListReason(
+            data?.sources?.catalog,
+            'Tidak ada listing dengan CTR di bawah 1% pada minimal 100 impresi di snapshot terakhir.',
+          )}
         />
       </Section>
 

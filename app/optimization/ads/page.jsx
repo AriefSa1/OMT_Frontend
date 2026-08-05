@@ -9,6 +9,7 @@ import RecommendationList from '../../../components/RecommendationList';
 import { DataSourceNote } from '../../../components/StatusBadge';
 import { fetchAdsOptimizations } from '../../../lib/api';
 import { useSnapshotRefresh } from '../../../lib/hooks';
+import { emptyListReason } from '../../../lib/utils';
 
 export default function AdsOptimizationPage() {
   const [data, setData] = useState(null);
@@ -73,7 +74,10 @@ export default function AdsOptimizationPage() {
           items={recommendations}
           loading={loading}
           emptyTitle="Belum ada rekomendasi kampanye"
-          emptyMessage={data?.message || 'Jalankan Sync iklan agar kampanye aktif tersimpan dan dapat dievaluasi.'}
+          emptyMessage={emptyListReason(
+            data?.meta,
+            'Tidak ada kampanye berbiaya yang CTR-nya di bawah 1% atau ROAS-nya di bawah 2x pada snapshot terakhir.',
+          )}
         />
       </section>
     </div>

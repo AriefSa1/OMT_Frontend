@@ -9,6 +9,7 @@ import RecommendationList from '../../../components/RecommendationList';
 import { DataSourceNote } from '../../../components/StatusBadge';
 import { fetchProductOptimizations } from '../../../lib/api';
 import { useSnapshotRefresh } from '../../../lib/hooks';
+import { emptyListReason } from '../../../lib/utils';
 
 export default function ProductOptimizationPage() {
   const [data, setData] = useState(null);
@@ -64,7 +65,10 @@ export default function ProductOptimizationPage() {
           items={recommendations}
           loading={loading}
           emptyTitle="Belum ada rekomendasi katalog"
-          emptyMessage={data?.message || 'Jalankan Sync katalog agar metrik produk tersedia untuk dievaluasi.'}
+          emptyMessage={emptyListReason(
+            data?.meta,
+            'Tidak ada produk yang memenuhi kriteria pada snapshot terakhir: CTR di bawah 1% dengan minimal 100 impresi, keranjang tanpa pesanan terkonfirmasi, atau stok tersisa 3 unit ke bawah pada produk yang pernah terjual.',
+          )}
         />
       </section>
     </div>

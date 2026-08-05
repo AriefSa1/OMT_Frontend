@@ -9,6 +9,7 @@ import RecommendationList from '../../../components/RecommendationList';
 import { DataSourceNote } from '../../../components/StatusBadge';
 import { fetchStoreOptimizations } from '../../../lib/api';
 import { useSnapshotRefresh } from '../../../lib/hooks';
+import { emptyListReason } from '../../../lib/utils';
 
 export default function StoreOptimizationPage() {
   const [data, setData] = useState(null);
@@ -25,6 +26,7 @@ export default function StoreOptimizationPage() {
 
   const recommendations = data?.decorationsAndPromos || [];
   const score = data?.storeHealthScore;
+  const reconciliationUnreliable = Boolean(data?.reconciliationTrust && !data.reconciliationTrust.reliable);
 
   return (
     <div className="space-y-6">
@@ -53,12 +55,15 @@ export default function StoreOptimizationPage() {
             ? 'Skor hanya dihitung bila ada rekomendasi gudang yang terukur.'
             : 'Dihitung dari jumlah dan prioritas rekomendasi gudang.'}
         />
+        {/* Zero recommendations from an untrustworthy reconciliation is not an all-clear. */}
         <MetricCard
           title="Rekomendasi aktif"
-          value={loading ? '—' : String(recommendations.length)}
+          value={loading ? '—' : reconciliationUnreliable ? 'Belum tersedia' : String(recommendations.length)}
           icon={ListChecks}
-          tone={recommendations.length ? 'amber' : 'slate'}
-          subtitle="Berasal dari selisih stok yang tercatat pada rekonsiliasi."
+          tone={!loading && !reconciliationUnreliable && recommendations.length ? 'amber' : 'slate'}
+          subtitle={reconciliationUnreliable
+            ? data.reconciliationTrust.message
+            : 'Berasal dari selisih stok yang tercatat pada rekonsiliasi.'}
         />
       </div>
 
@@ -71,7 +76,10 @@ export default function StoreOptimizationPage() {
           items={recommendations}
           loading={loading}
           emptyTitle="Belum ada rekomendasi gudang"
-          emptyMessage={data?.meta?.message || 'Jalankan Sync gudang agar rekonsiliasi stok tersedia untuk dievaluasi.'}
+          // An unreliable reconciliation cannot say "no discrepancy" — it says nothing.
+          emptyMessage={data?.reconciliationTrust && !data.reconciliationTrust.reliable
+            ? data.reconciliationTrust.message
+            : emptyListReason(data?.meta, 'Tidak ada SKU dengan status selisih pada rekonsiliasi terakhir.')}
         />
       </section>
     </div>
