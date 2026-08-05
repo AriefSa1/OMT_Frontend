@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, RefreshCw, AlertTriangle, TrendingUp, Trophy, CheckCircle2, ArrowRight, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { fetchAIDailyBriefing } from '../lib/api';
+import { fetchAIDailyBriefing, refreshAIDailyBriefing } from '../lib/api';
 
 export default function DailyBriefingCard() {
   const [briefing, setBriefing] = useState(null);
@@ -12,30 +12,37 @@ export default function DailyBriefingCard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadBriefing = async () => {
-    try {
-      const res = await fetchAIDailyBriefing();
-      setBriefing(res?.briefing || null);
-      setProvider(res?.briefing?.provider || res?.provider || null);
-      setNotice(res?.briefing?.message || res?.message || res?.error || null);
-    } catch (err) {
-      console.warn('Failed to load daily briefing:', err);
-      setBriefing(null);
-      setProvider(null);
-      setNotice('Briefing tidak dapat dimuat.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const applyResult = (res) => {
+    setBriefing(res?.briefing || null);
+    setProvider(res?.briefing?.provider || res?.provider || null);
+    setNotice(res?.briefing?.message || res?.message || res?.error || null);
   };
 
+  // Mount reuses the 10-minute cache in lib/api.js — the same Gemini quota that backs
+  // this card also backs the other four AI panels, so a page revisit must not spend it.
   useEffect(() => {
-    loadBriefing();
+    fetchAIDailyBriefing()
+      .then(applyResult)
+      .catch((err) => {
+        console.warn('Failed to load daily briefing:', err);
+        setBriefing(null);
+        setProvider(null);
+        setNotice('Briefing tidak dapat dimuat.');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
+  // The refresh button is the one place a user explicitly asks for a new call, so it
+  // bypasses the cache instead of waiting out the 10 minutes.
   const handleRefresh = () => {
     setRefreshing(true);
-    loadBriefing();
+    refreshAIDailyBriefing()
+      .then(applyResult)
+      .catch((err) => {
+        console.warn('Failed to refresh daily briefing:', err);
+        setNotice('Briefing tidak dapat dimuat ulang.');
+      })
+      .finally(() => setRefreshing(false));
   };
 
   if (loading) {

@@ -42,6 +42,14 @@ npm run lint
 `next lint` has no ESLint config in this repo yet and opens an interactive setup wizard,
 so it cannot run unattended. Verify with `npm run build` until someone configures it.
 
+```bash
+npm run docs:ai
+```
+
+Prints which component calls which `/api/ai/*` route, how `AIStatusNotice` reads
+`provider`/`errorCode`, and the quota-safety rule for any new AI panel (see the AI
+feature section below). Full backend-side reference: `../backend/docs/AI_SERVICE.md`.
+
 ## Coding Style & Naming Conventions
 
 Use ES modules and two-space indentation. Components are `PascalCase.jsx` in
@@ -172,6 +180,16 @@ reader would assume by default: the movement totals are a window over a paged hi
 span every warehouse, the team overview covers one team rather than the table beneath it,
 and the traffic shares do not sum to 100% because ad-assisted sales are also counted under
 their organic channel. Do not drop those labels to tidy the layout.
+
+**AI panels stopped burning quota on page views (2026-08-05)** — the Gemini key backing
+`/api/ai/*` is on a 20-requests/day free tier, and `DailyBriefingCard` used to call it on
+every dashboard mount, uncached, unlike the other four AI panels which all wait for a
+click. `fetchAIDailyBriefing()` in `lib/api.js` now caches for 10 minutes;
+`refreshAIDailyBriefing()` is the explicit bypass wired to the card's refresh button.
+`AIStatusNotice.jsx` also reads the backend's new `errorCode` so a transient
+`RATE_LIMITED`/`UNAVAILABLE` reads as "Kuota Gemini API sedang penuh" rather than the
+same generic "tidak tersedia" used for an actual failure. Any new AI panel that fetches
+on mount must go through `cached()` the same way — see `npm run docs:ai`.
 
 ## Remaining, in order
 

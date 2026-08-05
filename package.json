@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docs:ai": "node docs/explain-ai.js"
   },
   "dependencies": {
     "clsx": "^2.1.0",

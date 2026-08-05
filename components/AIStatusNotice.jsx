@@ -14,8 +14,14 @@ export default function AIStatusNotice({ result, className = '' }) {
   if (!result || result.success) return null;
 
   const provider = result.provider;
+  // errorCode comes from aiService's classifyGeminiError (backend/src/services/aiService.js)
+  // and distinguishes a transient quota/outage — already retried automatically before this
+  // ever reached the screen — from an actual failure. Conflating the two would tell a user
+  // to "check Settings" for a problem no setting can fix.
+  const errorCode = result.errorCode;
   const message = result.message || result.error || 'Permintaan AI tidak berhasil.';
   const needsKey = provider === 'NOT_CONFIGURED';
+  const isRateLimited = errorCode === 'RATE_LIMITED' || errorCode === 'UNAVAILABLE';
 
   return (
     <div className={`rounded-md border border-slate-200 bg-slate-50 p-4 ${className}`} role="status">
@@ -27,7 +33,9 @@ export default function AIStatusNotice({ result, className = '' }) {
               ? 'Fitur AI belum dikonfigurasi'
               : provider === 'MISSING_INPUT'
                 ? 'Data masukan belum lengkap'
-                : 'Analisis AI tidak tersedia'}
+                : isRateLimited
+                  ? 'Kuota Gemini API sedang penuh'
+                  : 'Analisis AI tidak tersedia'}
           </p>
           <p className="mt-1 text-xs leading-5 text-slate-600">{message}</p>
           {needsKey && (
