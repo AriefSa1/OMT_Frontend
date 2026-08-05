@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpDown, Eye, Package, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -24,20 +24,25 @@ export default function ShopeeCatalogPage() {
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const deferredSearch = useDebouncedValue(search);
+  const [appliedSearch, setAppliedSearch] = useState('');
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
-    const result = await fetchShopeeCatalog({ page, limit: 20, search: deferredSearch, sort, direction });
+    const result = await fetchShopeeCatalog({ page, limit: 20, search: appliedSearch, category, sort, direction });
     setCatalog(result?.success ? result : null);
     setLoading(false);
-  }, [page, deferredSearch, sort, direction]);
+  }, [page, appliedSearch, category, sort, direction]);
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
-  useEffect(() => { setPage(1); }, [deferredSearch, sort, direction]);
+  useEffect(() => {
+    if (deferredSearch === appliedSearch) return;
+    setAppliedSearch(deferredSearch);
+    setPage(1);
+  }, [deferredSearch, appliedSearch]);
   useSnapshotRefresh(loadCatalog);
 
-  const categories = useMemo(() => [...new Set((catalog?.products || []).map((product) => product.category).filter(Boolean))].sort(), [catalog]);
-  const visibleProducts = category ? (catalog?.products || []).filter((product) => product.category === category) : (catalog?.products || []);
+  const categories = catalog?.filters?.categories || [];
+  const visibleProducts = catalog?.products || [];
 
   const openDetail = async (product) => {
     setSelected(product);
@@ -62,9 +67,9 @@ export default function ShopeeCatalogPage() {
       <section className="surface p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_150px]">
           <label className="relative block"><span className="sr-only">Cari produk</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama atau SKU" className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400" /></label>
-          <label><span className="sr-only">Kategori</span><select value={category} onChange={(event) => setCategory(event.target.value)} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="">Semua kategori</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-          <label><span className="sr-only">Urutkan menurut</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="updatedAt">Pembaruan</option><option value="salesCount">Penjualan</option><option value="views">Tayangan</option><option value="stock">Stok</option><option value="price">Harga</option><option value="name">Nama</option></select></label>
-          <button type="button" onClick={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowUpDown className="h-4 w-4" />{direction === 'asc' ? 'Naik' : 'Turun'}</button>
+          <label><span className="sr-only">Kategori</span><select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="">Semua kategori</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+          <label><span className="sr-only">Urutkan menurut</span><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="updatedAt">Pembaruan</option><option value="salesCount">Penjualan</option><option value="views">Tayangan</option><option value="stock">Stok</option><option value="price">Harga</option><option value="name">Nama</option></select></label>
+          <button type="button" onClick={() => { setDirection(direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowUpDown className="h-4 w-4" />{direction === 'asc' ? 'Naik' : 'Turun'}</button>
         </div>
       </section>
 

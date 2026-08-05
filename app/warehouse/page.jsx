@@ -45,13 +45,14 @@ export default function WarehousePage() {
   const [syncError, setSyncError] = useState('');
 
   const deferredSearch = useDebouncedValue(search);
+  const [appliedSearch, setAppliedSearch] = useState('');
 
   const loadInventory = useCallback(async () => {
     setLoading(true);
     const response = await fetchWarehouseInventory({
       page,
       limit: 20,
-      search: deferredSearch,
+      search: appliedSearch,
       type: typeFilter !== 'all' ? typeFilter : undefined,
       warehouseId: warehouseFilter || undefined,
       teamId: teamFilter || undefined,
@@ -59,15 +60,17 @@ export default function WarehousePage() {
     });
     setInventory(response?.success ? response : null);
     setLoading(false);
-  }, [page, deferredSearch, typeFilter, warehouseFilter, teamFilter, sortBy]);
+  }, [page, appliedSearch, typeFilter, warehouseFilter, teamFilter, sortBy]);
 
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
 
   useEffect(() => {
+    if (deferredSearch === appliedSearch) return;
+    setAppliedSearch(deferredSearch);
     setPage(1);
-  }, [deferredSearch, typeFilter, warehouseFilter, teamFilter, sortBy]);
+  }, [deferredSearch, appliedSearch]);
 
   useSnapshotRefresh(loadInventory);
 
@@ -95,6 +98,7 @@ export default function WarehousePage() {
     setWarehouseFilter('');
     setTeamFilter('');
     setSearch('');
+    setAppliedSearch('');
     setSortBy('updated_desc');
     setPage(1);
   };
@@ -198,7 +202,7 @@ export default function WarehousePage() {
 
             {/* All */}
             <button
-              onClick={() => setTypeFilter('all')}
+              onClick={() => { setTypeFilter('all'); setPage(1); }}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 typeFilter === 'all'
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
@@ -213,7 +217,7 @@ export default function WarehousePage() {
 
             {/* Priority */}
             <button
-              onClick={() => setTypeFilter('priority')}
+              onClick={() => { setTypeFilter('priority'); setPage(1); }}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 typeFilter === 'priority'
                   ? 'bg-rose-50 text-rose-700 shadow-sm border border-rose-200'
@@ -229,7 +233,7 @@ export default function WarehousePage() {
 
             {/* Research */}
             <button
-              onClick={() => setTypeFilter('research')}
+              onClick={() => { setTypeFilter('research'); setPage(1); }}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 typeFilter === 'research'
                   ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200'
@@ -245,7 +249,7 @@ export default function WarehousePage() {
 
             {/* General */}
             <button
-              onClick={() => setTypeFilter('general')}
+              onClick={() => { setTypeFilter('general'); setPage(1); }}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 typeFilter === 'general'
                   ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200'
@@ -287,7 +291,7 @@ export default function WarehousePage() {
               <Building2 className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <select
                 value={warehouseFilter}
-                onChange={(e) => setWarehouseFilter(e.target.value)}
+                onChange={(e) => { setWarehouseFilter(e.target.value); setPage(1); }}
                 className="ui-select h-9 w-full rounded-xl pl-9 pr-8 text-xs font-medium text-slate-800"
               >
                 <option value="">Semua gudang</option>
@@ -306,7 +310,7 @@ export default function WarehousePage() {
               <Users className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <select
                 value={teamFilter}
-                onChange={(e) => setTeamFilter(e.target.value)}
+                onChange={(e) => { setTeamFilter(e.target.value); setPage(1); }}
                 className="ui-select h-9 w-full rounded-xl pl-9 pr-8 text-xs font-medium text-slate-800"
               >
                 <option value="">Semua tim</option>
@@ -325,7 +329,7 @@ export default function WarehousePage() {
               <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <select
                 value={sortBy}
-               onChange={(e) => setSortBy(e.target.value)}
+               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                className="ui-select h-9 w-full rounded-xl pl-9 pr-8 text-xs font-medium text-slate-800"
                >
                  <option value="total_desc">Stok Fisik (Banyak)</option>

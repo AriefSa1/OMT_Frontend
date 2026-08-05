@@ -53,13 +53,14 @@ export default function ShopeeProductPerformancePage() {
   const [error, setError] = useState('');
 
   const deferredSearch = useDebouncedValue(search);
+  const [appliedSearch, setAppliedSearch] = useState('');
 
   const loadPerformance = useCallback(async () => {
     setLoading(true);
     try {
       const result = await fetchShopeeProductPerformance({
         period,
-        keyword: deferredSearch,
+        keyword: appliedSearch,
         order_by: orderBy,
         order_type: orderType,
         page_size: pageSize,
@@ -73,15 +74,17 @@ export default function ShopeeProductPerformancePage() {
     } finally {
       setLoading(false);
     }
-  }, [period, deferredSearch, orderBy, orderType, pageSize, page]);
+  }, [period, appliedSearch, orderBy, orderType, pageSize, page]);
 
   useEffect(() => {
     loadPerformance();
   }, [loadPerformance]);
 
   useEffect(() => {
+    if (deferredSearch === appliedSearch) return;
+    setAppliedSearch(deferredSearch);
     setPage(1);
-  }, [period, deferredSearch, orderBy, orderType, pageSize]);
+  }, [deferredSearch, appliedSearch]);
 
   useSnapshotRefresh(loadPerformance);
 
@@ -218,7 +221,7 @@ export default function ShopeeProductPerformancePage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setPeriod(item.id)}
+                onClick={() => { setPeriod(item.id); setPage(1); }}
                 className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
                   active
                     ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
@@ -302,7 +305,7 @@ export default function ShopeeProductPerformancePage() {
             <span className="sr-only">Urutkan</span>
             <select
               value={orderBy}
-              onChange={(e) => setOrderBy(e.target.value)}
+              onChange={(e) => { setOrderBy(e.target.value); setPage(1); }}
               className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
             >
               {ORDER_BY_OPTIONS.map((opt) => (
@@ -317,7 +320,7 @@ export default function ShopeeProductPerformancePage() {
             <span className="sr-only">Tipe Pesanan</span>
             <select
               value={orderType}
-              onChange={(e) => setOrderType(e.target.value)}
+              onChange={(e) => { setOrderType(e.target.value); setPage(1); }}
               className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
             >
               <option value="confirmed">Pesanan Terkonfirmasi</option>
@@ -330,7 +333,7 @@ export default function ShopeeProductPerformancePage() {
             <span className="sr-only">Baris per halaman</span>
             <select
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
               className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
             >
               <option value={10}>10 per halaman</option>
