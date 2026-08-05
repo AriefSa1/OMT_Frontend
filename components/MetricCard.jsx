@@ -13,7 +13,9 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
         <p className="text-xs font-medium text-slate-600">{title}</p>
         {Icon && <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tones[tone] || tones.slate}`}><Icon className="h-4 w-4" /></span>}
       </div>
-      <p className="mt-4 truncate text-2xl font-semibold text-slate-900">{value}</p>
+      {/* truncate cuts long IDR figures with no way to read them — keep the full value
+          available on hover and to assistive technology. */}
+      <p className="mt-4 truncate text-2xl font-semibold text-slate-900" title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}>{value}</p>
       {subtitle && <p className="mt-2 text-xs leading-5 text-slate-500">{subtitle}</p>}
     </section>
   );

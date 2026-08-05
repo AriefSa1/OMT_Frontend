@@ -89,8 +89,7 @@ subtitle={data?.reconciliationTrust && !data.reconciliationTrust.reliable
 
 ### 2. Never present a constant as analysis
 
-No text may be shown as if it were computed when it is hardcoded. This is still live in
-three places — see item 1 of the work list.
+No text may be shown as if it were computed when it is hardcoded.
 
 ### 3. Displayed counts must describe the rows displayed
 
@@ -134,38 +133,37 @@ Verify with `git log`.
   (`WarehouseInventoryRow`, `PerformanceRow`)
 - `WarehouseDetailModal` refactored away from its fetch→setState→fetch cycle
 
+**Charts corrected, then wired** — `CategoryPieChart` takes its title and subtitle from the
+caller and prints the share its slices actually cover instead of a constant "100%";
+`SalesChart` derives its window from the rows it received (`n hari tersimpan`, date range,
+and how many of those days have a measured ad spend) instead of claiming "7-day window",
+and its tooltip renders a missing ad spend or order count as "Belum tersedia" rather than
+`0`. Both are now on the dashboard: `SalesChart` replaced the near-duplicate
+`SalesTrendChart` (deleted) and consumes `salesTrend[].orders`; `CategoryPieChart` consumes
+`categorySales` and labels it with the backend's new `categorySalesMeta.message`, which
+states that the share covers only the top-selling page of the catalog.
+
+**Responsiveness and accessibility** — `.table-scroll` moved onto the table's own wrapper
+in `app/page.jsx`, added around the `WarehouseDetailModal` history table, and `MetricCard`
+now sets `title` on its value so a truncated IDR figure stays readable.
+
+**Idle surfaces built** — `/growth` and `/optimization/{product,store,ads}` are real pages
+instead of redirects, `/optimization` is a hub, and both are reachable from the sidebar.
+`demandForecast` and `bundleSuggestions` render through an "unavailable" panel carrying the
+backend's reason. Shared list rendering lives in `components/RecommendationList.jsx`, which
+also creates the task, so the four pages do not each restate it.
+
 ## Remaining, in order
 
-### 1. Charts that misstate their own data — **fix the text before wiring them up**
+### 1. The new pages have not been exercised in a browser
 
-- `components/CategoryPieChart.jsx:39` prints a hardcoded **"100%"** in the centre of the
-  chart regardless of the data.
-- `components/CategoryPieChart.jsx:12` hardcodes the title **"Fashion Category Mix"**.
-- `components/SalesChart.jsx:43` claims **"Daily GMV vs Ad Spend comparison (7-day
-  window)"** without checking how many points it received.
+`npm run build` passes and the backend payloads were verified server-side, but
+`/growth` and `/optimization/*` have not been opened against a live session — the app
+redirects to `/login` and that needs real credentials. Walk both, including their empty
+states, before treating them as verified.
 
-Both components are the natural consumers of `salesTrend[].orders` and `categorySales`,
-which are currently dead payload. Connect them **after** the above is corrected — otherwise
-the first thing the new panels do is lie to the user.
+### 2. Two real endpoints still have no consumer
 
-### 2. Responsiveness and accessibility
-
-- `components/WarehouseDetailModal.jsx` — the history table has no `.table-scroll` wrapper;
-  add one so it scrolls on narrow screens.
-- `app/page.jsx:97` — `.table-scroll` sits on the `<section>` instead of the table at
-  `:99`; move it so the table is what scrolls.
-- `components/MetricCard.jsx:16` — the value `<p>` is `truncate` with no `title`, so a long
-  IDR figure is cut off with no way to read it. Add `title={value}`.
-
-### 3. Build UI for idle surfaces
-
-Per the user's decision these are to be built, not deleted. Prerequisite: item 1 done, so
-new pages do not display wrong numbers on day one.
-
-- `/growth` currently just `redirect('/actions')`. Build UI for `catalogScorecard`,
-  `restockPlan`, `priceStrategies`, `voucherAnalysis`, `adOpportunities`,
-  `listingExperiments`, `weeklyReport`.
-- `/optimization/{product,store,ads}` likewise.
-- `demandForecast` and `bundleSuggestions` are still `[]` stubs in the backend — show them
-  as "not available" with a reason; do not leave them looking merely empty, and do not fill
-  them with invented numbers.
+`fetchMarketplaceIntelligence()` and `fetchCompetitorIntelligence()` in `lib/api.js` are
+never called. `productSignals` and `activeAdCampaigns` now carry real values, and the
+competitor lookup is explicit per product — neither is shown anywhere.

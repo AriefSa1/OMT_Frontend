@@ -436,6 +436,9 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                   </div>
                 ) : (
                   <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                    {/* Six columns do not fit a narrow screen; without this the table was
+                        clipped by the rounded wrapper instead of scrolling. */}
+                    <div className="table-scroll">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                         <tr>
@@ -481,6 +484,7 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </div>

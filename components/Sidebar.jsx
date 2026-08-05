@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, LayoutDashboard, Megaphone, Settings, Store, TrendingUp, X } from 'lucide-react';
+import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Megaphone, Settings, Sparkles, Store, TrendingUp, X } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Beranda', href: '/', icon: LayoutDashboard },
@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { label: 'Iklan', href: '/ads', icon: Megaphone },
   { label: 'Gudang', href: '/warehouse', icon: Boxes },
   { label: 'Pusat Tindakan', href: '/actions', icon: CheckSquare },
+  { label: 'Optimasi', href: '/optimization', icon: Gauge },
+  { label: 'Pertumbuhan', href: '/growth', icon: Sparkles },
   { label: 'Pengaturan', href: '/settings', icon: Settings },
 ];
 

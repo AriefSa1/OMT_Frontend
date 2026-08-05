@@ -3,55 +3,70 @@
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-export default function CategoryPieChart({ data = [] }) {
-  const COLORS = ['#f472b6', '#f43f5e', '#fb7185', '#fda4af', '#e879f9'];
+const COLORS = ['#d92d70', '#b4235f', '#8f1d4b', '#344054', '#667085', '#98a2b3'];
+
+export default function CategoryPieChart({
+  data = [],
+  title = 'Distribusi kategori',
+  // The caller knows what the shares were computed over; the chart must not guess it.
+  subtitle,
+  message,
+}) {
+  const slices = data.filter((entry) => Number.isFinite(Number(entry?.value)));
+  // The centre used to print a constant "100%". Show the share the slices actually
+  // cover, so a partial breakdown cannot read as a complete one.
+  const coveredShare = Math.round(slices.reduce((sum, entry) => sum + Number(entry.value), 0));
 
   return (
-    <div className="glass-card rounded-3xl p-6 shadow-cute flex flex-col justify-between">
+    <section className="surface flex flex-col justify-between p-5">
       <div>
-        <h3 className="text-base font-bold text-slate-800">Fashion Category Mix</h3>
-        <p className="text-xs text-slate-400 font-medium">Sales breakdown by product line</p>
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-1 text-xs leading-5 text-slate-500">{subtitle}</p>}
       </div>
 
-      <div className="h-52 my-2 relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={80}
-              paddingAngle={6}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} cornerRadius={8} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(val) => [`${val}%`, 'Share']}
-              contentStyle={{ background: 'rgba(255, 255, 255, 0.9)', borderRadius: '16px', border: '1px solid #fbcfe8' }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-xl font-black text-pink-600">100%</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Share</span>
-        </div>
-      </div>
-
-      <div className="space-y-2 mt-2">
-        {data.map((cat, idx) => (
-          <div key={cat.name} className="flex items-center justify-between text-xs font-semibold">
-            <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color || COLORS[idx] }} />
-              <span className="text-slate-600">{cat.name}</span>
+      {!slices.length ? (
+        <p className="my-8 text-center text-sm leading-6 text-slate-500">
+          {message || 'Belum ada pangsa kategori yang dapat dihitung dari snapshot katalog.'}
+        </p>
+      ) : (
+        <>
+          <div className="relative my-2 h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={slices} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
+                  {slices.map((entry, index) => (
+                    <Cell key={entry.name} fill={entry.color || COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [`${value}%`, name]}
+                  contentStyle={{ border: '1px solid #e4e7ec', borderRadius: 6, fontSize: 12 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xl font-semibold text-slate-900">{coveredShare}%</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Tercakup</span>
             </div>
-            <span className="text-slate-800 font-bold">{cat.value}%</span>
           </div>
-        ))}
-      </div>
-    </div>
+
+          <ul className="mt-2 space-y-2">
+            {slices.map((category, index) => (
+              <li key={category.name} className="flex items-center justify-between gap-3 text-xs">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: category.color || COLORS[index % COLORS.length] }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-slate-600" title={category.name}>{category.name}</span>
+                </span>
+                <span className="shrink-0 font-semibold text-slate-800">{category.value}%</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
