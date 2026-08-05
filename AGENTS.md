@@ -201,6 +201,29 @@ on mount must go through `cached()` the same way — see `npm run docs:ai`.
 (verified with a repo-wide search before removal). Also removed: three stray `.patch`
 files sitting at the repo root.
 
+## Perbaikan per halaman — sedang berjalan (mulai 2026-08-06)
+
+Pengguna memberi daftar ketidaksesuaian data per halaman; dikerjakan satu halaman per
+commit. Rincian lengkap dan catatan desainnya ada di `../backend/AGENTS.md` bagian dengan
+judul yang sama — di sini hanya sisi tampilannya.
+
+**Selesai:** Dashboard (`7ee9e672`) dan Katalog Shopee (`afea4a4d`).
+
+**Belum dikerjakan:**
+
+1. **Performa Produk** — mengklik produk di `/shopee/performance` merender `/product/[id]`,
+   halaman yang sama dengan katalog. Butuh route tersendiri berisi detail performa dan
+   analisa mendalam yang berfokus solusi.
+2. **Iklan** — `AdsAIOptimizerCard` diganti total: dari saran negative keyword/bid (metode
+   iklan Shopee sudah tidak memakai itu) menjadi kalkulator margin per produk yang
+   diiklankan, dengan input HPP/omset/biaya admin, dipicu dari halaman baru saat produk
+   diklik.
+
+**Menunggu verifikasi:** dua panel AI baru — `DailyBriefingCard` (struktur baru) dan
+`ProductScaleUpAdvisor` — belum pernah menampilkan hasil sukses dari Gemini sungguhan;
+kuota harian habis saat pengerjaan. Buka keduanya setelah kuota reset sebelum menganggap
+tampilannya selesai. Keadaan gagal dan kosong sudah terverifikasi.
+
 ## Remaining, in order
 
 ### 1. The new pages have not been exercised in a browser
