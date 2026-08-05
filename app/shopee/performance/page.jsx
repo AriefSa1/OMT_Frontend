@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -39,6 +39,66 @@ const ORDER_BY_OPTIONS = [
   { value: 'conversion_rate.desc', label: 'Tingkat Konversi Tertinggi' },
   { value: 'add_to_cart_rate.desc', label: 'Add to Cart Tertinggi' },
 ];
+
+const PerformanceRow = memo(function PerformanceRow({ product }) {
+  return (
+    <tr className="hover:bg-slate-50 transition-colors">
+      <td className="px-4 py-3.5 text-center font-bold">
+        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+          product.rank === 1
+            ? 'bg-amber-100 text-amber-800 ring-2 ring-amber-400'
+            : product.rank === 2
+              ? 'bg-slate-200 text-slate-800 ring-1 ring-slate-400'
+              : product.rank === 3
+                ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-300'
+                : 'text-slate-500'
+        }`}>
+          {product.rank}
+        </span>
+      </td>
+      <td className="px-4 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-slate-100 border border-slate-200">
+            {product.image ? (
+              <Image src={product.image} alt="" fill sizes="40px" className="object-cover" />
+            ) : (
+              <Package className="m-2.5 h-5 w-5 text-slate-400" />
+            )}
+          </span>
+          <div className="min-w-0">
+            <Link href={`/product/${product.itemId}`} className="block max-w-72 truncate font-semibold text-slate-900 hover:text-rose-600 transition-colors">
+              {product.name}
+            </Link>
+            <span className="block max-w-72 truncate text-[11px] text-slate-500 font-mono">SKU: {product.sku || product.itemId}</span>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3.5 text-right font-medium text-slate-700">{formatIDR(product.price)}</td>
+      <td className="px-4 py-3.5 text-right font-medium text-slate-800">{formatNumber(product.visitors)}</td>
+      <td className="px-4 py-3.5 text-right text-slate-600">{formatNumber(product.views)}</td>
+      <td className="px-4 py-3.5 text-right">
+        <div className="font-semibold text-slate-800">{formatNumber(product.addToCartUnits)} unit</div>
+        <div className="text-[10px] text-slate-500">{formatPercent(product.addToCartRate)}</div>
+      </td>
+      <td className="px-4 py-3.5 text-right">
+        <div className="font-semibold text-slate-900">{formatNumber(product.confirmedOrders)} pesanan</div>
+        <div className="text-[10px] text-slate-500">{formatNumber(product.confirmedUnits)} unit</div>
+      </td>
+      <td className="px-4 py-3.5 text-right font-bold text-rose-700">{formatIDR(product.confirmedSales)}</td>
+      <td className="px-4 py-3.5 text-right font-semibold">
+        <span className={`inline-block px-2 py-0.5 rounded text-[11px] ${
+          product.conversionRate >= 5
+            ? 'bg-emerald-50 text-emerald-700 font-bold'
+            : product.conversionRate >= 2
+              ? 'bg-blue-50 text-blue-700'
+              : 'bg-slate-100 text-slate-600'
+        }`}>
+          {formatPercent(product.conversionRate)}
+        </span>
+      </td>
+    </tr>
+  );
+});
 
 export default function ShopeeProductPerformancePage() {
   const [period, setPeriod] = useState('real_time');
@@ -383,90 +443,9 @@ export default function ShopeeProductPerformancePage() {
                   </tr>
                 ))}
 
-              {!loading &&
-                (data?.products || []).map((product) => {
-                  const isTop3 = product.rank <= 3;
-                  return (
-                    <tr key={`${product.itemId}-${product.rank}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3.5 text-center font-bold">
-                        <span
-                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                            product.rank === 1
-                              ? 'bg-amber-100 text-amber-800 ring-2 ring-amber-400'
-                              : product.rank === 2
-                              ? 'bg-slate-200 text-slate-800 ring-1 ring-slate-400'
-                              : product.rank === 3
-                              ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-300'
-                              : 'text-slate-500'
-                          }`}
-                        >
-                          {product.rank}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-slate-100 border border-slate-200">
-                            {product.image ? (
-                              <Image
-                                src={product.image}
-                                alt=""
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <Package className="m-2.5 h-5 w-5 text-slate-400" />
-                            )}
-                          </span>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/product/${product.itemId}`}
-                              className="block max-w-72 truncate font-semibold text-slate-900 hover:text-rose-600 transition-colors"
-                            >
-                              {product.name}
-                            </Link>
-                            <span className="block max-w-72 truncate text-[11px] text-slate-500 font-mono">
-                              SKU: {product.sku || product.itemId}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-medium text-slate-700">
-                        {formatIDR(product.price)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-medium text-slate-800">
-                        {formatNumber(product.visitors)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-slate-600">
-                        {formatNumber(product.views)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-slate-800">{formatNumber(product.addToCartUnits)} unit</div>
-                        <div className="text-[10px] text-slate-500">{formatPercent(product.addToCartRate)}</div>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-slate-900">{formatNumber(product.confirmedOrders)} pesanan</div>
-                        <div className="text-[10px] text-slate-500">{formatNumber(product.confirmedUnits)} unit</div>
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-bold text-rose-700">
-                        {formatIDR(product.confirmedSales)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-semibold">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[11px] ${
-                            product.conversionRate >= 5
-                              ? 'bg-emerald-50 text-emerald-700 font-bold'
-                              : product.conversionRate >= 2
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {formatPercent(product.conversionRate)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+              {!loading && (data?.products || []).map((product) => (
+                <PerformanceRow key={`${product.itemId}-${product.rank}`} product={product} />
+              ))}
 
               {!loading && (!data?.products || data.products.length === 0) && (
                 <tr>

@@ -18,11 +18,18 @@ export default function Navbar({ onMenu }) {
   const handleSync = async () => {
     setSyncing(true);
     setMessage('');
-    const result = await triggerFullSync();
-    setMessage(result.message || result.error || 'Sync selesai.');
-    await loadStatus();
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event('snapshot:updated'));
-    setSyncing(false);
+    try {
+      const result = await triggerFullSync();
+      setMessage(result.message || result.error || 'Sync selesai.');
+      await loadStatus();
+      if (result?.success && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('snapshot:updated'));
+      }
+    } catch (error) {
+      setMessage(error?.message || 'Sync gagal. Snapshot sebelumnya tetap digunakan.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const shopeeMeta = status?.snapshots?.shopee;

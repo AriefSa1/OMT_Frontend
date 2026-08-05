@@ -6,14 +6,14 @@ import { fetchAIPredictiveRestock, createTask } from '../lib/api';
 import { formatNumber } from '../lib/utils';
 import AIStatusNotice from './AIStatusNotice';
 
-export default function ProductRestockPredictor({ product, warehouseStock = 0 }) {
+export default function ProductRestockPredictor({ product, warehouseStock = null }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [leadTimeDays, setLeadTimeDays] = useState(7);
   const [taskMsg, setTaskMsg] = useState('');
 
   const handlePredict = async () => {
-    if (!product) return;
+    if (!product || warehouseStock === null) return;
     setLoading(true);
     try {
       const res = await fetchAIPredictiveRestock({
@@ -91,17 +91,25 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
           <button
             type="button"
             onClick={handlePredict}
-            disabled={loading}
+            disabled={loading || warehouseStock === null}
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-60 transition"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span>{loading ? 'Menghitung...' : data ? 'Hitung Ulang' : 'Analisis Stok'}</span>
+            <span>{loading ? 'Menghitung...' : warehouseStock === null ? 'Stok Belum Dipetakan' : data ? 'Hitung Ulang' : 'Analisis Stok'}</span>
           </button>
         </div>
       </div>
 
       <div className="p-5">
-        {!data ? (
+        {warehouseStock === null ? (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-xs font-semibold">Prediksi restock belum tersedia</p>
+              <p className="mt-1 text-[11px] text-amber-800">SKU produk Shopee ini belum memiliki kecocokan persis dengan SKU gudang aktif.</p>
+            </div>
+          </div>
+        ) : !data ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-8 text-center bg-slate-50/40">
             <Boxes className="h-8 w-8 text-slate-400" />
             <p className="mt-2 text-xs font-semibold text-slate-700">Analisis stok belum dijalankan</p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -30,6 +30,72 @@ import WarehouseDetailModal from '../../components/WarehouseDetailModal';
 import { fetchWarehouseInventory, triggerWarehouseSync } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber } from '../../lib/utils';
+
+function ProductTypeBadge({ type }) {
+  if (type === 'priority') {
+    return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200"><Flame className="w-3 h-3 fill-rose-500" />PRIORITY</span>;
+  }
+  if (type === 'research') {
+    return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-50 text-purple-600 border border-purple-200"><FlaskConical className="w-3 h-3" />RESEARCH</span>;
+  }
+  return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200"><Boxes className="w-3 h-3 text-slate-400" />GENERAL</span>;
+}
+
+const WarehouseInventoryRow = memo(function WarehouseInventoryRow({ item, onSelect }) {
+  const recon = item.reconciliation;
+  const price = item.priceMin ?? item.priceMax ?? null;
+
+  return (
+    <tr className="hover:bg-slate-50/80 transition-colors group cursor-pointer" onClick={() => onSelect(item)}>
+      <td className="px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200">
+            {item.imageUrl ? (
+              <Image src={item.imageUrl} alt={item.name || ''} fill sizes="44px" className="object-cover group-hover:scale-105 transition-transform" />
+            ) : (
+              <Package className="m-3 h-5 w-5 text-slate-400" />
+            )}
+          </span>
+          <div className="min-w-0">
+            <span className="block max-w-xs truncate font-bold text-slate-800 group-hover:text-rose-600 transition-colors">{item.name}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px] font-mono font-medium text-slate-400">{item.sku}</span>
+              {item.bundleCount > 1 && <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">Bundle {item.bundleCount}x</span>}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-3.5 whitespace-nowrap"><ProductTypeBadge type={item.productType} /></td>
+      <td className="px-3 py-3.5 whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+          <Users className="w-3 h-3 text-indigo-500" />
+          {item.teamName || (item.teamId ? `Team ${item.teamId}` : 'Team Belum Ada')}
+        </span>
+      </td>
+      <td className="px-4 py-3.5 whitespace-nowrap">
+        <div className="flex items-center gap-1 text-slate-800 font-bold text-xs"><Building2 className="w-3.5 h-3.5 text-slate-400" /><span>{item.warehouseName || 'PDC Warehouse'}</span></div>
+      </td>
+      <td className="px-3 py-3.5 text-right whitespace-nowrap"><span className="font-extrabold text-slate-800 text-xs">{formatIDR(price)}</span></td>
+      <td className="px-3 py-3.5 text-right whitespace-nowrap">
+        <div className="space-y-0.5">
+          <span className="font-black text-emerald-700 text-xs block">{formatNumber(item.availableStock)} unit</span>
+          <span className="text-[10px] text-slate-400 font-medium block">{item.reservedStock ? `(${formatNumber(item.reservedStock)} tertahan)` : `Total: ${formatNumber(item.totalStock)}`}</span>
+        </div>
+      </td>
+      <td className="px-3 py-3.5 text-right whitespace-nowrap text-slate-700 font-medium">
+        {recon ? `${formatNumber(recon.shopeeStock)} unit` : <span className="text-slate-400 italic">Belum link</span>}
+      </td>
+      <td className="px-3 py-3.5 text-right whitespace-nowrap">
+        {recon ? <span className={`font-bold ${recon.variance === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>{recon.variance === 0 ? '0 (Pas)' : `${recon.variance > 0 ? '+' : ''}${formatNumber(recon.variance)}`}</span> : <span className="text-slate-400">-</span>}
+      </td>
+      <td className="px-4 py-3.5 text-center whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
+        <button type="button" onClick={() => onSelect(item)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 text-xs font-bold transition-all border border-slate-200 hover:border-rose-200 shadow-sm">
+          <Eye className="w-3.5 h-3.5 text-rose-500" /><span>Detail</span>
+        </button>
+      </td>
+    </tr>
+  );
+});
 
 export default function WarehousePage() {
   const [inventory, setInventory] = useState(null);
@@ -103,34 +169,11 @@ export default function WarehousePage() {
     setPage(1);
   };
 
+  const selectItem = useCallback((item) => setSelectedItem(item), []);
+
   const counts = inventory?.counts || { all: 0, priority: 0, research: 0, general: 0 };
   const warehouseOptions = inventory?.filters?.warehouses || [];
   const teamOptions = inventory?.filters?.teams || [];
-
-  const getTypeBadge = (type) => {
-    if (type === 'priority') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200">
-          <Flame className="w-3 h-3 fill-rose-500" />
-          PRIORITY
-        </span>
-      );
-    }
-    if (type === 'research') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-50 text-purple-600 border border-purple-200">
-          <FlaskConical className="w-3 h-3" />
-          RESEARCH
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-        <Boxes className="w-3 h-3 text-slate-400" />
-        GENERAL
-      </span>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -404,119 +447,9 @@ export default function WarehousePage() {
                     </tr>
                   ))}
 
-                {inventory?.items?.map((item) => {
-                  const recon = item.reconciliation;
-                  const price = item.priceMin ?? item.priceMax ?? null;
-                  return (
-                    <tr
-                      key={`${item.sku}-${item.warehouseId ?? 'all'}`}
-                      className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-                      onClick={() => setSelectedItem(item)}
-                    >
-                      {/* Product Name & SKU */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200">
-                            {item.imageUrl ? (
-                              <Image
-                                src={item.imageUrl}
-                                alt={item.name || ''}
-                                fill
-                                sizes="44px"
-                                className="object-cover group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <Package className="m-3 h-5 w-5 text-slate-400" />
-                            )}
-                          </span>
-                          <div className="min-w-0">
-                            <span className="block max-w-xs truncate font-bold text-slate-800 group-hover:text-rose-600 transition-colors">
-                              {item.name}
-                            </span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[11px] font-mono font-medium text-slate-400">
-                                {item.sku}
-                              </span>
-                              {item.bundleCount && item.bundleCount > 1 && (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">
-                                  Bundle {item.bundleCount}x
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Type Badge */}
-                      <td className="px-3 py-3.5 whitespace-nowrap">
-                        {getTypeBadge(item.productType)}
-                      </td>
-
-                      {/* Team */}
-                      <td className="px-3 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          <Users className="w-3 h-3 text-indigo-500" />
-                          {item.teamName || (item.teamId ? `Team ${item.teamId}` : 'Team Belum Ada')}
-                        </span>
-                      </td>
-
-                      {/* Warehouse Location */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-1 text-slate-800 font-bold text-xs">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{item.warehouseName || 'PDC Warehouse'}</span>
-                        </div>
-                      </td>
-
-                      {/* Price */}
-                      <td className="px-3 py-3.5 text-right whitespace-nowrap">
-                        <span className="font-extrabold text-slate-800 text-xs">
-                          {formatIDR(price)}
-                        </span>
-                      </td>
-
-                      {/* Physical Stock Breakdown */}
-                      <td className="px-3 py-3.5 text-right whitespace-nowrap">
-                        <div className="space-y-0.5">
-                          <span className="font-black text-emerald-700 text-xs block">
-                            {formatNumber(item.availableStock)} unit
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium block">
-                            {item.reservedStock ? `(${formatNumber(item.reservedStock)} tertahan)` : `Total: ${formatNumber(item.totalStock)}`}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Shopee Stock */}
-                      <td className="px-3 py-3.5 text-right whitespace-nowrap text-slate-700 font-medium">
-                        {recon ? `${formatNumber(recon.shopeeStock)} unit` : <span className="text-slate-400 italic">Belum link</span>}
-                      </td>
-
-                      {/* Variance */}
-                      <td className="px-3 py-3.5 text-right whitespace-nowrap">
-                        {recon ? (
-                          <span className={`font-bold ${recon.variance === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {recon.variance === 0 ? '0 (Pas)' : `${recon.variance > 0 ? '+' : ''}${formatNumber(recon.variance)}`}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedItem(item)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 text-xs font-bold transition-all border border-slate-200 hover:border-rose-200 shadow-sm"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-rose-500" />
-                          <span>Detail</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {inventory?.items?.map((item) => (
+                  <WarehouseInventoryRow key={`${item.sku}-${item.warehouseId ?? 'all'}`} item={item} onSelect={selectItem} />
+                ))}
               </tbody>
             </table>
           </div>
@@ -528,6 +461,7 @@ export default function WarehousePage() {
 
       {/* Product Stock Detail & Mutation History Modal */}
       <WarehouseDetailModal
+        key={`${selectedItem?.sku || 'closed'}-${selectedItem?.warehouseId || ''}`}
         isOpen={Boolean(selectedItem)}
         onClose={() => setSelectedItem(null)}
         sku={selectedItem?.sku}

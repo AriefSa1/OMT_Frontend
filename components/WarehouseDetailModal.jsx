@@ -8,7 +8,6 @@ import {
   Users,
   ChevronDown,
   Check,
-  ArrowDownRight,
   ArrowUpRight,
   Clock,
   CheckCircle2,
@@ -29,21 +28,13 @@ const ACTIVE_WAREHOUSE_IDS = new Set(['38', '94', '67', '96']);
 export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null, initialWarehouseId = '' }) {
   const [loading, setLoading] = useState(true);
   const [detailData, setDetailData] = useState(null);
-  const [filterType, setFilterType] = useState('ALL'); // ALL, IN, OUT
   const [error, setError] = useState(null);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState(null);
   const [warehouseMenuOpen, setWarehouseMenuOpen] = useState(false);
   const warehouseMenuRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      const nextWarehouseId = ACTIVE_WAREHOUSE_IDS.has(String(initialWarehouseId))
-        ? String(initialWarehouseId)
-        : '';
-      setSelectedWarehouseId(nextWarehouseId);
-      setWarehouseMenuOpen(false);
-    }
-  }, [isOpen, initialWarehouseId, sku]);
+  const requestedWarehouseId = selectedWarehouseId
+    ?? (ACTIVE_WAREHOUSE_IDS.has(String(initialWarehouseId)) ? String(initialWarehouseId) : '');
 
   useEffect(() => {
     if (!isOpen || !sku) return;
@@ -54,7 +45,7 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
     setDetailData(null);
 
     fetchWarehouseProductDetail(sku, {
-      warehouseId: selectedWarehouseId || undefined,
+      warehouseId: requestedWarehouseId || undefined,
       variantId: item?.rawVariationId || undefined,
     })
       .then((res) => {
@@ -77,33 +68,7 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
     return () => {
       isMounted = false;
     };
-  }, [isOpen, sku, selectedWarehouseId, item?.rawVariationId]);
-
-  useEffect(() => {
-    if (!isOpen || !detailData) return;
-
-    const options = (detailData?.warehouseStockOptions || detailData?.warehouseSkuDetail?.warehouseStockOptions || [])
-      .filter((option) => ACTIVE_WAREHOUSE_IDS.has(String(option.warehouseId)));
-    if (!options.length) return;
-
-    const currentOption = selectedWarehouseId
-      ? options.find((option) => String(option.warehouseId) === String(selectedWarehouseId))
-      : null;
-    const firstEnabledOption = options.find((option) => !option.disabled);
-
-    if (selectedWarehouseId && (!currentOption || currentOption.disabled)) {
-      if (firstEnabledOption) setSelectedWarehouseId(String(firstEnabledOption.warehouseId));
-      else setSelectedWarehouseId('');
-      return;
-    }
-
-    if (!selectedWarehouseId) {
-      const activeWarehouseId = detailData?.warehouseSkuDetail?.warehouseId || detailData?.product?.warehouseId;
-      const activeOption = options.find((option) => String(option.warehouseId) === String(activeWarehouseId) && !option.disabled);
-      const nextOption = activeOption || firstEnabledOption;
-      if (nextOption) setSelectedWarehouseId(String(nextOption.warehouseId));
-    }
-  }, [isOpen, detailData, selectedWarehouseId]);
+  }, [isOpen, sku, requestedWarehouseId, item?.rawVariationId]);
 
   useEffect(() => {
     if (!warehouseMenuOpen) return;
@@ -140,7 +105,11 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
   const fallbackWarehouseId = ACTIVE_WAREHOUSE_IDS.has(String(product?.warehouseId))
     ? product?.warehouseId
     : '';
-  const selectedWarehouseOption = warehouseStockOptions.find((option) => String(option.warehouseId) === String(selectedWarehouseId || fallbackWarehouseId));
+  const resolvedWarehouseId = selectedWarehouseId
+    || warehouseSkuDetail?.warehouseId
+    || requestedWarehouseId
+    || fallbackWarehouseId;
+  const selectedWarehouseOption = warehouseStockOptions.find((option) => String(option.warehouseId) === String(resolvedWarehouseId));
   const hasActiveWarehouseOptions = warehouseStockOptions.length > 0;
   const hasActiveWarehouseStock = warehouseStockOptions.some((option) => !option.disabled && Number(option.totalStock || 0) > 0);
   const selectedWarehouseLabel = selectedWarehouseOption?.warehouseName || 'Pilih gudang aktif';
@@ -163,11 +132,7 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
   const unitPrice = product?.priceMin ?? product?.priceMax ?? null;
   const stockValuation = unitPrice === null ? null : unitPrice * displayTotalStock;
 
-  const filteredMovements = movements.filter((m) => {
-    if (filterType === 'IN') return m.type === 'IN';
-    if (filterType === 'OUT') return m.type === 'OUT';
-    return true;
-  });
+  const filteredMovements = movements.filter((movement) => movement.type === 'OUT');
 
   const getTypeBadge = (type) => {
     if (type === 'priority') {
@@ -227,6 +192,9 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
             </div>
           </div>
           <button
+            type="button"
+            aria-label="Tutup detail inventori"
+            title="Tutup"
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
           >
@@ -347,7 +315,7 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Harga Satuan</span>
                       <p className="text-sm font-black text-slate-800">
-                        {formatIDR(product.priceMin || product.priceMax || 0)}
+                        {formatIDR(unitPrice)}
                       </p>
                     </div>
                     <div>
@@ -454,31 +422,11 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-rose-500" />
                     <h4 className="text-sm font-black text-slate-800">
-                      Riwayat Keluar & Masuk Stok ({filteredMovements.length} Transaksi)
+                      Riwayat Stok Keluar ({filteredMovements.length} Transaksi)
                     </h4>
                   </div>
 
-                  {/* Filter Buttons */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                    <button
-                      onClick={() => setFilterType('ALL')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${filterType === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                    >
-                      Semua
-                    </button>
-                    <button
-                      onClick={() => setFilterType('IN')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${filterType === 'IN' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-700'}`}
-                    >
-                      + Masuk (IN)
-                    </button>
-                    <button
-                      onClick={() => setFilterType('OUT')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${filterType === 'OUT' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-rose-700'}`}
-                    >
-                      - Keluar (OUT)
-                    </button>
-                  </div>
+                  <span className="text-[11px] font-medium text-slate-500">Sumber: pesanan keluar gudang</span>
                 </div>
 
                 {filteredMovements.length === 0 ? (
@@ -501,7 +449,6 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredMovements.map((mov) => {
-                          const isIn = mov.type === 'IN';
                           return (
                             <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors">
                               <td className="px-4 py-3 text-slate-600 font-medium whitespace-nowrap">
@@ -509,14 +456,14 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                               </td>
                               <td className="px-3 py-3">
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black ${isIn ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black bg-rose-100 text-rose-800"
                                 >
-                                  {isIn ? <ArrowDownRight className="w-3 h-3 text-emerald-600" /> : <ArrowUpRight className="w-3 h-3 text-rose-600" />}
-                                  {isIn ? 'MASUK (+IN)' : 'KELUAR (-OUT)'}
+                                  <ArrowUpRight className="w-3 h-3 text-rose-600" />
+                                  KELUAR (-OUT)
                                 </span>
                               </td>
-                              <td className={`px-3 py-3 text-right font-black ${isIn ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                {isIn ? `+${formatNumber(mov.quantity)}` : `-${formatNumber(mov.quantity)}`} unit
+                              <td className="px-3 py-3 text-right font-black text-rose-600">
+                                -{formatNumber(mov.quantity)} unit
                               </td>
                               <td className="px-4 py-3 font-mono font-bold text-slate-800">
                                 {mov.reference || '-'}
