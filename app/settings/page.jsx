@@ -227,7 +227,7 @@ export default function SettingsPage() {
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Operasional & Jadwal Sync</h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Atur nama toko utama, endpoint performa pesanan, dan interval Sync otomatis di latar belakang.
+                Atur nama toko utama, integrasi AI Gemini, dan interval Sync otomatis di latar belakang.
               </p>
             </div>
           </div>
@@ -237,16 +237,6 @@ export default function SettingsPage() {
               <input
                 value={form.storeName || ''}
                 onChange={update('storeName')}
-                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-slate-700">Endpoint ringkasan pesanan</span>
-              <input
-                type="url"
-                value={form.shopeeOrderSummaryUrl || ''}
-                onChange={update('shopeeOrderSummaryUrl')}
-                placeholder="https://seller.shopee.co.id/api/order/get_order_summary_info"
                 className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
               />
             </label>
