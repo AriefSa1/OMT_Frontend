@@ -27,7 +27,8 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/Pagination';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import WarehouseDetailModal from '../../components/WarehouseDetailModal';
-import { fetchWarehouseInventory, triggerWarehouseSync } from '../../lib/api';
+import WarehouseTeamOverview from '../../components/WarehouseTeamOverview';
+import { fetchWarehouseInventory, fetchWarehouseTeamOverview, triggerWarehouseSync } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber } from '../../lib/utils';
 
@@ -112,6 +113,8 @@ export default function WarehousePage() {
 
   const deferredSearch = useDebouncedValue(search);
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [teamOverview, setTeamOverview] = useState(null);
+  const [teamOverviewLoading, setTeamOverviewLoading] = useState(true);
 
   const loadInventory = useCallback(async () => {
     setLoading(true);
@@ -131,6 +134,16 @@ export default function WarehousePage() {
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
+
+  const loadTeamOverview = useCallback(async () => {
+    setTeamOverviewLoading(true);
+    setTeamOverview(await fetchWarehouseTeamOverview());
+    setTeamOverviewLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadTeamOverview();
+  }, [loadTeamOverview]);
 
   useEffect(() => {
     if (deferredSearch === appliedSearch) return;
@@ -172,6 +185,7 @@ export default function WarehousePage() {
   const selectItem = useCallback((item) => setSelectedItem(item), []);
 
   const counts = inventory?.counts || { all: 0, priority: 0, research: 0, general: 0 };
+  const reconciliationUnreliable = Boolean(inventory?.reconciliationTrust && !inventory.reconciliationTrust.reliable);
   const warehouseOptions = inventory?.filters?.warehouses || [];
   const teamOptions = inventory?.filters?.teams || [];
 
@@ -224,14 +238,20 @@ export default function WarehousePage() {
           tone="rose"
           subtitle="Berdasarkan harga satuan x stok fisik"
         />
+        {/* An unreliable reconciliation cannot report "sinkron sempurna" — it reports
+            nothing, and the reason belongs on the card. */}
         <MetricCard
           title="Selisih Rekonsiliasi Shopee"
           value={formatNumber(inventory?.totals?.discrepanciesCount)}
           icon={ShieldAlert}
-          tone={Number(inventory?.totals?.discrepanciesCount) ? 'amber' : 'emerald'}
-          subtitle={Number(inventory?.totals?.discrepanciesCount) ? 'Perlu tindakan penyesuaian' : 'Semua katalog sinkron sempurna'}
+          tone={reconciliationUnreliable ? 'slate' : Number(inventory?.totals?.discrepanciesCount) ? 'amber' : 'emerald'}
+          subtitle={reconciliationUnreliable
+            ? inventory.reconciliationTrust.message
+            : Number(inventory?.totals?.discrepanciesCount) ? 'Perlu tindakan penyesuaian' : 'Semua katalog sinkron sempurna'}
         />
       </div>
+
+      <WarehouseTeamOverview overview={teamOverview} loading={teamOverviewLoading} />
 
       {/* Main Section */}
       <section className="surface overflow-hidden rounded-3xl border border-slate-200/80 shadow-sm bg-white">
