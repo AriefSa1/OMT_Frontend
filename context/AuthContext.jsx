@@ -54,8 +54,11 @@ export function AuthProvider({ children }) {
     setUser(userData);
     localStorage.setItem('token', authToken);
     localStorage.setItem('user', JSON.stringify(userData));
-    // Set cookie for Next.js middleware route protection
-    document.cookie = `auth_token=${authToken}; path=/; max-age=86400; SameSite=Lax`;
+    // Cookie ini hanya penanda rute untuk middleware Next.js (auth sebenarnya divalidasi
+    // server via Bearer token). Tambahkan Secure di HTTPS supaya tidak ikut terkirim lewat
+    // koneksi http polos; di localhost (http) Secure dilewati agar dev tetap jalan.
+    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `auth_token=${authToken}; path=/; max-age=86400; SameSite=Lax${secure}`;
   };
 
   const logoutSilently = () => {
@@ -76,8 +79,8 @@ export function AuthProvider({ children }) {
     return { success: false, error: res.error || 'Login failed' };
   };
 
-  const register = async (name, email, password) => {
-    const res = await registerUser({ name, email, password });
+  const register = async (name, email, password, registrationSecret) => {
+    const res = await registerUser({ name, email, password, registrationSecret });
     if (res.success && res.token) {
       setAuthSession(res.token, res.user);
       return { success: true, user: res.user };
