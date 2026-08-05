@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+**Dokumentasi lengkap** (peta halaman/komponen ke endpoint, cara mengubah tampilan angka,
+TTL cache): `npm run docs` untuk daftar, atau langsung baca `docs/`. Untuk arti field
+respons endpoint itu sendiri, sumber kebenarannya ada di
+`../backend/docs/API_REFERENCE.md`.
+
 ## Project Structure & Module Organization
 
 This repository is the Next.js 14 (App Router) frontend for a Shopee marketplace and
