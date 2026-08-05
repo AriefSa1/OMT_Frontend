@@ -162,6 +162,17 @@ instead of redirects, `/optimization` is a hub, and both are reachable from the 
 backend's reason. Shared list rendering lives in `components/RecommendationList.jsx`, which
 also creates the task, so the four pages do not each restate it.
 
+**Real data reached surfaces that had none** — the sales trend now draws 30 stored days
+instead of an empty state; the dashboard gained panels for cancellations/refunds and for
+sales by traffic channel; the warehouse page gained the live team inventory overview; and
+`WarehouseDetailModal` shows stock in as well as out.
+
+Each of those carries the scope it was measured over, because none of them is what a
+reader would assume by default: the movement totals are a window over a paged history and
+span every warehouse, the team overview covers one team rather than the table beneath it,
+and the traffic shares do not sum to 100% because ad-assisted sales are also counted under
+their organic channel. Do not drop those labels to tidy the layout.
+
 ## Remaining, in order
 
 ### 1. The new pages have not been exercised in a browser
