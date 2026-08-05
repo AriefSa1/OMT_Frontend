@@ -191,6 +191,11 @@ click. `fetchAIDailyBriefing()` in `lib/api.js` now caches for 10 minutes;
 same generic "tidak tersedia" used for an actual failure. Any new AI panel that fetches
 on mount must go through `cached()` the same way — see `npm run docs:ai`.
 
+**Dead components removed (2026-08-05)** — `CookieModal.jsx`, `ProductDetailModal.jsx`,
+`ReconciliationBadge.jsx` had no importer anywhere in `app/`, `components/`, or `lib/`
+(verified with a repo-wide search before removal). Also removed: three stray `.patch`
+files sitting at the repo root.
+
 ## Remaining, in order
 
 ### 1. The new pages have not been exercised in a browser
