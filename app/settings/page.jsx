@@ -7,15 +7,17 @@ import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/St
 import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 
+const DEFAULT_WAREHOUSE_LOGIN_URL = 'https://pdcgudang.et.r.appspot.com/v1/users/login';
+const DEFAULT_WAREHOUSE_INVENTORY_URL = 'https://pdcgudang.et.r.appspot.com/v1/products/list';
+
 const EMPTY_FORM = {
   storeName: '',
   cronInterval: '15m',
-  warehouseLoginUrl: '',
-  warehouseInventoryUrl: '',
+  warehouseLoginUrl: DEFAULT_WAREHOUSE_LOGIN_URL,
+  warehouseInventoryUrl: DEFAULT_WAREHOUSE_INVENTORY_URL,
   warehouseUsername: '',
   warehousePassword: '',
   warehouseLoginFrom: 'selling',
-  shopeeOrderSummaryUrl: '',
   geminiApiKey: '',
 };
 
@@ -45,6 +47,8 @@ export default function SettingsPage() {
     setForm((current) => ({
       ...EMPTY_FORM,
       ...nextSettings,
+      warehouseLoginUrl: nextSettings.warehouseLoginUrl || DEFAULT_WAREHOUSE_LOGIN_URL,
+      warehouseInventoryUrl: nextSettings.warehouseInventoryUrl || DEFAULT_WAREHOUSE_INVENTORY_URL,
       warehousePassword: current.warehousePassword || '',
     }));
     setCookieStoreName(nextSettings.storeName || '');
