@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, ClipboardPlus, RefreshCw, Save, UsersRound } from 'lucide-react';
+import { ArrowLeft, BarChart3, ClipboardPlus, Layers, RefreshCw, Save, UsersRound } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
 import StatusBadge, { DataSourceNote } from '../../../components/StatusBadge';
 import ProductABCopywriter from '../../../components/ProductABCopywriter';
 import ProductRestockPredictor from '../../../components/ProductRestockPredictor';
 import ProductPricingSimulator from '../../../components/ProductPricingSimulator';
+import ProductScaleUpAdvisor from '../../../components/ProductScaleUpAdvisor';
+import VariationTable from '../../../components/VariationTable';
 import { createTask, fetchCompetitorIntelligence, fetchProductDetail, refreshCompetitorIntelligence, updateProductEconomics } from '../../../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../../../lib/utils';
 
@@ -83,8 +85,24 @@ export default function ProductDetailPage({ params }) {
           <form onSubmit={saveEconomics} className="surface p-5"><h2 className="text-sm font-semibold text-slate-900">Ekonomi produk</h2><p className="mt-1 text-xs leading-5 text-slate-500">Isi biaya manual untuk menghitung margin. Kalkulasi tidak dibuat ketika semua nilai belum diisi.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{[{ key: 'unitCost', label: 'Biaya produk per unit' }, { key: 'unitAdCost', label: 'Biaya iklan per unit' }, { key: 'shippingCost', label: 'Biaya pengiriman per unit' }, { key: 'platformFeePercent', label: 'Biaya platform (%)' }].map((field) => <label key={field.key} className="block"><span className="text-xs font-medium text-slate-700">{field.label}</span><input type="number" min="0" step="any" value={form[field.key]} onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800" /></label>)}</div><div className="mt-5 border-t border-slate-200 pt-4"><p className="text-xs text-slate-500">Perkiraan margin per unit</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatIDR(product.economics?.estimatedMargin)}</p>{product.economics?.estimatedMarginPercent !== null && product.economics?.estimatedMarginPercent !== undefined && <p className="mt-1 text-xs text-slate-500">{formatPercent(product.economics.estimatedMarginPercent)} dari harga jual</p>}</div><div className="mt-5 flex justify-end"><button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-70"><Save className="h-4 w-4" />{saving ? 'Menyimpan' : 'Simpan ekonomi'}</button></div></form>
         </div>
 
+        {/* Varian: mana yang benar-benar menghasilkan penjualan. Ditempatkan sebelum
+            panel AI karena strategi scale-up di bawah bertumpu pada sebaran ini. */}
+        <section className="surface overflow-hidden">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-slate-600" aria-hidden="true" />
+              <h2 className="text-sm font-semibold text-slate-900">Penjualan per varian</h2>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Urut dari varian dengan penjualan tertinggi. Pangsa dihitung terhadap total penjualan varian produk ini, bukan terhadap penjualan toko.
+            </p>
+          </div>
+          <VariationTable variations={product.variations || []} summary={product.variationSummary} />
+        </section>
+
         {/* AI Features Suite */}
         <div className="space-y-6">
+          <ProductScaleUpAdvisor product={product} />
           <ProductABCopywriter product={product} />
           <ProductPricingSimulator product={product} initialEconomics={product.economics} competitorPrice={competitors?.products?.[0]?.price} />
           <ProductRestockPredictor product={product} warehouseStock={snapshot?.warehouseStock ?? null} />

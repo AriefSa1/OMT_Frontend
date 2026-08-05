@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpDown, Eye, Package, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronRight, Eye, Layers, Package, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/Pagination';
+import VariationTable from '../../components/VariationTable';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import { fetchProductDetail, fetchShopeeCatalog, triggerShopeeSync } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
@@ -23,6 +24,9 @@ export default function ShopeeCatalogPage() {
   const [syncing, setSyncing] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
+  // Baris varian dibuka per produk. Varian sudah ikut dalam respons katalog, jadi
+  // membukanya tidak memicu permintaan baru.
+  const [expanded, setExpanded] = useState(() => new Set());
   const deferredSearch = useDebouncedValue(search);
   const [appliedSearch, setAppliedSearch] = useState('');
 
@@ -43,6 +47,12 @@ export default function ShopeeCatalogPage() {
 
   const categories = catalog?.filters?.categories || [];
   const visibleProducts = catalog?.products || [];
+
+  const toggleVariations = (itemId) => setExpanded((current) => {
+    const next = new Set(current);
+    if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+    return next;
+  });
 
   const openDetail = async (product) => {
     setSelected(product);
@@ -75,10 +85,41 @@ export default function ShopeeCatalogPage() {
 
       <section className="surface overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Daftar produk</h2><p className="mt-1 text-xs text-slate-500">Klik baris untuk ringkasan cepat dan detail produk.</p></div><SlidersHorizontal className="h-4 w-4 text-slate-500" /></div>
-        <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Produk</th><th className="px-4 py-3 font-medium">Kategori</th><th className="px-4 py-3 text-right font-medium">Harga</th><th className="px-4 py-3 text-right font-medium">Stok</th><th className="px-4 py-3 text-right font-medium">Penjualan</th><th className="px-5 py-3 text-right font-medium">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">
-          {loading && Array.from({ length: 8 }).map((_, index) => <tr key={index}><td colSpan="6" className="px-5 py-3"><div className="skeleton h-8 rounded-md" /></td></tr>)}
-          {!loading && visibleProducts.map((product) => <tr key={product.shopeeItemId} className="cursor-pointer hover:bg-slate-50" onClick={() => openDetail(product)}><td className="px-5 py-3"><div className="flex min-w-0 items-center gap-3"><span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-slate-100">{product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="40px" className="object-cover" /> : <Package className="m-2.5 h-5 w-5 text-slate-400" />}</span><span className="min-w-0"><span className="block max-w-72 truncate font-semibold text-slate-800">{product.name}</span><span className="block max-w-72 truncate text-[11px] text-slate-500">{product.sku || product.shopeeItemId}</span></span></div></td><td className="px-4 py-3 text-slate-600">{product.category || 'Tanpa kategori'}</td><td className="px-4 py-3 text-right font-medium text-slate-700">{formatIDR(product.price)}</td><td className="px-4 py-3 text-right text-slate-700">{formatNumber(product.stock)}</td><td className="px-4 py-3 text-right text-slate-700">{formatNumber(product.salesCount)}</td><td className="px-5 py-3 text-right"><button type="button" title="Lihat ringkasan produk" aria-label={`Lihat ${product.name}`} onClick={(event) => { event.stopPropagation(); openDetail(product); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Eye className="h-4 w-4" /></button></td></tr>)}
-          {!loading && !visibleProducts.length && <tr><td colSpan="6" className="p-0"><EmptyState title="Produk tidak ditemukan" message={catalog?.meta?.message || 'Ubah filter atau jalankan Sync katalog.'} /></td></tr>}
+        <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Produk</th><th className="px-4 py-3 font-medium">Kategori</th><th className="px-4 py-3 font-medium">Varian</th><th className="px-4 py-3 text-right font-medium">Harga</th><th className="px-4 py-3 text-right font-medium">Stok</th><th className="px-4 py-3 text-right font-medium">Penjualan</th><th className="px-5 py-3 text-right font-medium">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">
+          {loading && Array.from({ length: 8 }).map((_, index) => <tr key={index}><td colSpan="7" className="px-5 py-3"><div className="skeleton h-8 rounded-md" /></td></tr>)}
+          {!loading && visibleProducts.map((product) => {
+            const variationCount = product.variationSummary?.count || 0;
+            const isOpen = expanded.has(product.shopeeItemId);
+            return (
+            <Fragment key={product.shopeeItemId}>
+              <tr className="cursor-pointer hover:bg-slate-50" onClick={() => openDetail(product)}><td className="px-5 py-3"><div className="flex min-w-0 items-center gap-3"><span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-slate-100">{product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="40px" className="object-cover" /> : <Package className="m-2.5 h-5 w-5 text-slate-400" />}</span><span className="min-w-0"><span className="block max-w-72 truncate font-semibold text-slate-800">{product.name}</span><span className="block max-w-72 truncate text-[11px] text-slate-500">{product.sku || product.shopeeItemId}</span></span></div></td><td className="px-4 py-3 text-slate-600">{product.category || 'Tanpa kategori'}</td>
+                <td className="px-4 py-3">
+                  {variationCount ? (
+                    <button
+                      type="button"
+                      onClick={(event) => { event.stopPropagation(); toggleVariations(product.shopeeItemId); }}
+                      aria-expanded={isOpen}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      {isOpen ? <ChevronDown className="h-3 w-3" aria-hidden="true" /> : <ChevronRight className="h-3 w-3" aria-hidden="true" />}
+                      <Layers className="h-3 w-3" aria-hidden="true" />
+                      {variationCount}
+                    </button>
+                  ) : <span className="text-slate-400">—</span>}
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-slate-700">{formatIDR(product.price)}</td><td className="px-4 py-3 text-right text-slate-700">{formatNumber(product.stock)}</td><td className="px-4 py-3 text-right text-slate-700">{formatNumber(product.salesCount)}</td><td className="px-5 py-3 text-right"><button type="button" title="Lihat ringkasan produk" aria-label={`Lihat ${product.name}`} onClick={(event) => { event.stopPropagation(); openDetail(product); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Eye className="h-4 w-4" /></button></td></tr>
+              {isOpen && (
+                <tr className="bg-slate-50/60">
+                  <td colSpan="7" className="px-5 py-3">
+                    <div className="surface overflow-hidden bg-white">
+                      <VariationTable variations={product.variations || []} summary={product.variationSummary} compact />
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          ); })}
+          {!loading && !visibleProducts.length && <tr><td colSpan="7" className="p-0"><EmptyState title="Produk tidak ditemukan" message={catalog?.meta?.message || 'Ubah filter atau jalankan Sync katalog.'} /></td></tr>}
         </tbody></table></div>
         <Pagination pagination={catalog?.pagination} onChange={setPage} />
       </section>
