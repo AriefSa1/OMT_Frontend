@@ -132,7 +132,20 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
   const unitPrice = product?.priceMin ?? product?.priceMax ?? null;
   const stockValuation = unitPrice === null ? null : unitPrice * displayTotalStock;
 
-  const filteredMovements = movements.filter((movement) => movement.type === 'OUT');
+  // The warehouse reports both directions; the local fallback only ever holds outbound
+  // rows, and says so through movementAvailability.
+  const movementAvailability = detailData?.movementAvailability;
+  const inboundAvailable = Boolean(movementAvailability?.inbound);
+  // The warehouse returns a page of history, not all of it. Say which.
+  const movementWindow = movementAvailability?.window;
+  // The flow covers the variant across every warehouse — transfers between them appear on
+  // both sides — so the totals must not be read as belonging to the selected warehouse.
+  const windowLabel = movementWindow && !movementWindow.complete
+    ? `${formatNumber(movementWindow.rows)} transaksi terakhir dari ${formatNumber(movementWindow.totalItems)} tercatat · semua gudang`
+    : movementWindow
+      ? `seluruh ${formatNumber(movementWindow.totalItems)} transaksi tercatat · semua gudang`
+      : null;
+  const filteredMovements = inboundAvailable ? movements : movements.filter((movement) => movement.type === 'OUT');
 
   const getTypeBadge = (type) => {
     if (type === 'priority') {
@@ -371,7 +384,27 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                     <TrendingDown className="w-4 h-4 text-rose-600" />
                   </div>
                   <p className="text-2xl font-black text-rose-800">-{formatNumber(stats?.totalOut || 0)}</p>
-                  <span className="text-[10px] text-rose-600 font-medium">Pesanan MP & mutasi keluar</span>
+                  <span className="text-[10px] text-rose-600 font-medium">{windowLabel || 'Pesanan MP & mutasi keluar'}</span>
+                </div>
+
+                {/* Inbound has a source only when the warehouse flow answered. Without it the
+                    figure is unmeasured — it must not appear as a clean zero. */}
+                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-emerald-900">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-emerald-700">Stok Masuk</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  {stats?.totalIn === null || stats?.totalIn === undefined ? (
+                    <>
+                      <p className="text-base font-black text-emerald-800">Belum tersedia</p>
+                      <span className="text-[10px] font-medium text-emerald-700">{movementAvailability?.message || 'Sumber mutasi masuk belum terhubung.'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-black text-emerald-800">+{formatNumber(stats.totalIn)}</p>
+                      <span className="text-[10px] text-emerald-600 font-medium">{windowLabel || 'Restock, retur & transfer masuk'}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -422,11 +455,15 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-rose-500" />
                     <h4 className="text-sm font-black text-slate-800">
-                      Riwayat Stok Keluar ({filteredMovements.length} Transaksi)
+                      {inboundAvailable ? 'Riwayat Mutasi Stok' : 'Riwayat Stok Keluar'} ({filteredMovements.length} Transaksi)
                     </h4>
                   </div>
 
-                  <span className="text-[11px] font-medium text-slate-500">Sumber: pesanan keluar gudang</span>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {inboundAvailable
+                      ? `Sumber: mutasi masuk & keluar PDC Gudang${windowLabel ? ` · ${windowLabel}` : ''}`
+                      : 'Sumber: pesanan keluar gudang'}
+                  </span>
                 </div>
 
                 {filteredMovements.length === 0 ? (
@@ -452,21 +489,25 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredMovements.map((mov) => {
+                          const isInbound = mov.type === 'IN';
+                          // A cancelled row is shown but never counted; grey it so it cannot
+                          // be mistaken for stock that actually moved.
+                          const cancelled = mov.counted === false;
                           return (
-                            <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr key={mov.id} className={`transition-colors hover:bg-slate-50/80 ${cancelled ? 'opacity-60' : ''}`}>
                               <td className="px-4 py-3 text-slate-600 font-medium whitespace-nowrap">
                                 {formatDate(mov.timestamp)}
                               </td>
                               <td className="px-3 py-3">
                                 <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black bg-rose-100 text-rose-800"
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black ${isInbound ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
                                 >
-                                  <ArrowUpRight className="w-3 h-3 text-rose-600" />
-                                  KELUAR (-OUT)
+                                  <ArrowUpRight className={`w-3 h-3 ${isInbound ? 'rotate-180 text-emerald-600' : 'text-rose-600'}`} />
+                                  {isInbound ? 'MASUK (+IN)' : 'KELUAR (-OUT)'}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-right font-black text-rose-600">
-                                -{formatNumber(mov.quantity)} unit
+                              <td className={`px-3 py-3 text-right font-black ${isInbound ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {isInbound ? '+' : '-'}{formatNumber(mov.quantity)} unit
                               </td>
                               <td className="px-4 py-3 font-mono font-bold text-slate-800">
                                 {mov.reference || '-'}
@@ -475,9 +516,11 @@ export default function WarehouseDetailModal({ isOpen, onClose, sku, item = null
                                 <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold">
                                   {mov.source}
                                 </span>
+                                {mov.warehouseName && <span className="mt-1 block text-[10px] font-medium text-slate-500">{mov.warehouseName}</span>}
                               </td>
-                              <td className="px-4 py-3 text-slate-600 max-w-xs truncate" title={mov.note}>
+                              <td className="px-4 py-3 text-slate-600 max-w-xs truncate" title={[mov.note, mov.arrivedAt ? `diterima ${formatDate(mov.arrivedAt)}` : null, mov.actor].filter(Boolean).join(' · ')}>
                                 {mov.note || '-'}
+                                {mov.arrivedAt && <span className="ml-1 text-[10px] text-slate-400">diterima {formatDate(mov.arrivedAt)}</span>}
                               </td>
                             </tr>
                           );
