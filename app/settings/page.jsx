@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   warehousePassword: '',
   warehouseLoginFrom: 'selling',
   shopeeOrderSummaryUrl: '',
+  geminiApiKey: '',
 };
 
 export default function SettingsPage() {
@@ -59,6 +60,14 @@ export default function SettingsPage() {
     setSaving(true);
     const payload = { ...form };
     if (!payload.warehousePassword) delete payload.warehousePassword;
+    // Blank means "leave as is" for write-only secrets; sending '' would erase them.
+    if (!payload.geminiApiKey) delete payload.geminiApiKey;
+    // These are server-derived status flags, not settings. Echoing them back made the
+    // client look like it was trying to set them.
+    delete payload.cookieConfigured;
+    delete payload.warehouseLoginConfigured;
+    delete payload.warehouseCredentialsConfigured;
+    delete payload.geminiApiKeyConfigured;
     const response = await saveSettings(payload);
     setMessage(response.success ? 'Pengaturan berhasil disimpan.' : response.error || 'Pengaturan tidak dapat disimpan.');
     await loadData();
@@ -240,6 +249,26 @@ export default function SettingsPage() {
                 placeholder="https://seller.shopee.co.id/api/order/get_order_summary_info"
                 className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
               />
+            </label>
+            <label className="block">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-700">Kunci API Gemini</span>
+                <span className="text-[11px] text-slate-500">
+                  Tersimpan: {settings?.geminiApiKeyConfigured ? 'Ya' : 'Belum'}
+                </span>
+              </span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={form.geminiApiKey || ''}
+                onChange={update('geminiApiKey')}
+                placeholder={settings?.geminiApiKeyConfigured ? 'Terisi — kosongkan untuk mempertahankan' : 'Tempel kunci API Gemini'}
+                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
+              />
+              <span className="mt-1 block text-[11px] leading-5 text-slate-500">
+                Tanpa kunci ini seluruh fitur AI tidak aktif dan panelnya menampilkan status
+                &quot;belum dikonfigurasi&quot;.
+              </span>
             </label>
             <label className="block">
               <span className="text-xs font-medium text-slate-700">Interval Sync otomatis</span>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Boxes, Sparkles, RefreshCw, AlertTriangle, Calendar, TrendingDown, CheckCircle, PackagePlus, Zap } from 'lucide-react';
 import { fetchAIPredictiveRestock, createTask } from '../lib/api';
 import { formatNumber } from '../lib/utils';
+import AIStatusNotice from './AIStatusNotice';
 
 export default function ProductRestockPredictor({ product, warehouseStock = 0 }) {
   const [loading, setLoading] = useState(false);
@@ -20,13 +21,11 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
         sku: product.sku || product.shopeeItemId,
         stock: product.stock || 0,
         salesCount: product.salesCount || 0,
-        warehouseStock: warehouseStock || 0,
+        warehouseStock: warehouseStock ?? null,
         leadTimeDays: Number(leadTimeDays) || 7,
-        category: product.category || 'Fashion',
+        category: product.category || '',
       });
-      if (res) {
-        setData(res);
-      }
+      setData(res || null);
     } catch (err) {
       console.warn('Failed to calculate predictive restock:', err);
     } finally {
@@ -37,11 +36,20 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
   const handleCreateRestockTask = async () => {
     if (!product || !data) return;
     const isDeadstock = data.metrics?.urgency === 'DEADSTOCK';
+    const reorderQty = data.metrics?.suggestedBatchReorder;
+    // Never write an invented quantity into a persisted task. Without a computed
+    // figure the task says what it actually knows.
+    const title = isDeadstock
+      ? `Likuidasi Deadstock: ${product.name}`
+      : reorderQty
+        ? `Restock ${reorderQty} unit: ${product.name}`
+        : `Tinjau kebutuhan restock: ${product.name}`;
+
     const response = await createTask({
       id: `AI-RESTOCK-${product.shopeeItemId}`,
       type: isDeadstock ? 'INVENTORY_RECONCILIATION' : 'PRODUCT_REVIEW',
-      title: isDeadstock ? `Likuidasi Deadstock: ${product.name}` : `Restock ${data.metrics?.suggestedBatchReorder || 50} unit: ${product.name}`,
-      description: data.restockRecommendation || 'Tindak lanjuti rekomendasi AI restock & persediaan.',
+      title,
+      description: data.restockRecommendation || 'Tindak lanjuti hasil analisis persediaan.',
       source: 'GUDANG_INTERNAL',
       entityType: 'PRODUCT',
       entityId: product.shopeeItemId,
@@ -50,11 +58,13 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
     setTaskMsg(response.message || response.error || 'Tugas restock berhasil dibuat!');
   };
 
+  // Metrics are computed by the backend from real stock and sales figures, so they are
+  // shown even when the model itself is unavailable. Advice fields are not.
   const metrics = data?.metrics;
-  const playbook = data?.liquidationPlaybook;
+  const playbook = data?.success ? data.liquidationPlaybook : null;
 
   return (
-    <section className="surface overflow-hidden border border-slate-200 shadow-xs">
+    <section className="surface overflow-hidden border border-slate-200 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-600 text-white">
@@ -82,7 +92,7 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
             type="button"
             onClick={handlePredict}
             disabled={loading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 disabled:opacity-60 transition"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-60 transition"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             <span>{loading ? 'Menghitung...' : data ? 'Hitung Ulang' : 'Analisis Stok'}</span>
@@ -111,7 +121,7 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
 
               <div className="rounded-lg bg-slate-50 p-3 border border-slate-200">
                 <p className="text-[11px] text-slate-500 font-medium">Laju Penjualan (Daily)</p>
-                <p className="mt-1 text-base font-bold text-slate-900">{metrics?.dailyVelocity} unit/hari</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{formatNumber(metrics?.dailyVelocity)} unit/hari</p>
                 <p className="text-[10px] text-slate-400">Rata-rata 30 hari</p>
               </div>
 
@@ -120,9 +130,11 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
                 <p className={`mt-1 text-base font-bold ${
                   metrics?.urgency === 'CRITICAL' ? 'text-rose-600' : metrics?.urgency === 'WARNING' ? 'text-amber-600' : 'text-emerald-600'
                 }`}>
-                  {metrics?.daysOfInventory} hari
+                  {formatNumber(metrics?.daysOfInventory)} hari
                 </p>
-                <p className="text-[10px] text-slate-400">Habis ~ {metrics?.predictedRunoutDate}</p>
+                <p className="text-[10px] text-slate-400">
+                  {metrics?.predictedRunoutDate ? `Habis ~ ${metrics.predictedRunoutDate}` : 'Tanggal habis belum dapat dihitung'}
+                </p>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3 border border-slate-200">
@@ -147,11 +159,15 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
                   <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
                 )}
                 <div>
-                  <p className="font-bold">Status: {metrics?.urgency}</p>
-                  <p className="mt-0.5">{data.restockRecommendation}</p>
+                  <p className="font-bold">Status: {metrics?.urgency || 'Belum tersedia'}</p>
+                  {data.restockRecommendation && <p className="mt-0.5">{data.restockRecommendation}</p>}
                 </div>
               </div>
             </div>
+
+            {/* Metrics above are computed from real stock and sales figures and stay
+                visible; the model's narrative advice does not exist without a key. */}
+            <AIStatusNotice result={data} />
 
             {/* Deadstock Liquidation Playbook if applicable */}
             {playbook && (
@@ -168,7 +184,7 @@ export default function ProductRestockPredictor({ product, warehouseStock = 0 })
                   </div>
                   <div className="rounded bg-slate-50 p-2.5 border border-slate-100">
                     <span className="font-semibold text-slate-700">Taktik Flash Sale Shopee:</span>
-                    <p className="mt-1 text-slate-600">{playbook.flashSaleStrategy || 'Gunakan promo puncak'}</p>
+                    <p className="mt-1 text-slate-600">{playbook.flashSaleStrategy}</p>
                   </div>
                 </div>
 

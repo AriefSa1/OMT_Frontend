@@ -1,25 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Sparkles, RefreshCw, AlertTriangle, CheckCircle2, TrendingUp, Trophy, ChevronRight, ArrowRight } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertTriangle, TrendingUp, Trophy, CheckCircle2, ArrowRight, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { fetchAIDailyBriefing } from '../lib/api';
 
 export default function DailyBriefingCard() {
   const [briefing, setBriefing] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadBriefing = async () => {
     try {
       const res = await fetchAIDailyBriefing();
-      if (res?.success && res.briefing) {
-        setBriefing(res.briefing);
-      } else if (res?.briefing) {
-        setBriefing(res.briefing);
-      }
+      setBriefing(res?.briefing || null);
+      setProvider(res?.briefing?.provider || res?.provider || null);
+      setNotice(res?.briefing?.message || res?.message || res?.error || null);
     } catch (err) {
       console.warn('Failed to load daily briefing:', err);
+      setBriefing(null);
+      setProvider(null);
+      setNotice('Briefing tidak dapat dimuat.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -37,131 +40,179 @@ export default function DailyBriefingCard() {
 
   if (loading) {
     return (
-      <div className="surface p-5 border-l-4 border-rose-500 animate-pulse">
-        <div className="flex items-center justify-between">
-          <div className="h-4 bg-slate-200 rounded w-48"></div>
-          <div className="h-6 bg-slate-200 rounded-full w-24"></div>
+      <div className="surface p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="skeleton h-4 w-48 rounded" />
+          <div className="skeleton h-6 w-24 rounded-full" />
         </div>
         <div className="mt-4 space-y-2">
-          <div className="h-3 bg-slate-200 rounded w-full"></div>
-          <div className="h-3 bg-slate-200 rounded w-4/5"></div>
+          <div className="skeleton h-3 w-full rounded" />
+          <div className="skeleton h-3 w-4/5 rounded" />
         </div>
       </div>
     );
   }
 
-  if (!briefing) return null;
+  const isRealAI = provider === 'REAL_GEMINI_API';
+  // criticalAlerts are derived from real ROAS and stock figures by the backend, so they
+  // are shown even when the model itself is unavailable.
+  const alerts = Array.isArray(briefing?.criticalAlerts) ? briefing.criticalAlerts : null;
 
-  const score = briefing.healthScore || 85;
-  const isRealAI = briefing.provider === 'REAL_GEMINI_API';
+  const refreshButton = (
+    <button
+      type="button"
+      onClick={handleRefresh}
+      disabled={refreshing}
+      title="Muat ulang briefing"
+      aria-label="Muat ulang briefing"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
+    >
+      <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin text-rose-600' : ''}`} aria-hidden="true" />
+    </button>
+  );
+
+  // Anything other than a live model result is stated plainly. Previously this path
+  // rendered a canned summary, an invented health score and three fixed "priority
+  // actions" that were indistinguishable from real analysis.
+  if (!isRealAI) {
+    return (
+      <section className="surface p-5" aria-live="polite">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-slate-900">Briefing Harian AI</h2>
+              <p className="text-[11px] text-slate-500">
+                {provider === 'NOT_CONFIGURED' ? 'Belum dikonfigurasi' : 'Tidak tersedia'}
+              </p>
+            </div>
+          </div>
+          {refreshButton}
+        </div>
+
+        <p className="mt-4 text-xs leading-6 text-slate-600">
+          {notice || 'Briefing harian belum dapat dibuat.'}
+        </p>
+
+        {provider === 'NOT_CONFIGURED' && (
+          <Link
+            href="/settings"
+            className="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Settings className="h-3.5 w-3.5" aria-hidden="true" />
+            Atur kunci API Gemini
+          </Link>
+        )}
+
+        {alerts?.length > 0 && (
+          <div className="mt-5 border-t border-slate-200 pt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Perhatian dari data snapshot
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {alerts.map((alert, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-xs leading-5 text-slate-700">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
+                  <span>{alert}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  const score = Number.isFinite(Number(briefing?.healthScore)) ? Number(briefing.healthScore) : null;
 
   return (
-    <section className="relative overflow-hidden rounded-xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/30 to-amber-50/20 p-5 shadow-sm">
-      {/* Decorative gradient blur */}
-      <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-rose-400/10 blur-2xl" />
-
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-white shadow-sm shadow-rose-200">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">AI Daily Executive Briefing</h2>
-              {isRealAI && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                  Gemini Live
-                </span>
-              )}
+    <section className="surface p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-rose-600 text-white">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">Briefing Harian AI</h2>
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                Gemini Live
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500">{briefing.date || 'Hari Ini'}</p>
+            {briefing.date && <p className="text-[11px] text-slate-500">{briefing.date}</p>}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-xs font-semibold shadow-xs">
-            <span className="text-slate-500">Kesehatan Toko:</span>
-            <span className={score >= 80 ? 'text-emerald-600 font-bold' : score >= 60 ? 'text-amber-600 font-bold' : 'text-rose-600 font-bold'}>
-              {score}/100
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            title="Muat ulang briefing AI"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin text-rose-600' : ''}`} />
-          </button>
+          {score !== null && (
+            <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold">
+              <span className="text-slate-500">Kesehatan Toko:</span>
+              <span className={score >= 80 ? 'text-emerald-700' : score >= 60 ? 'text-amber-700' : 'text-rose-700'}>
+                {score}/100
+              </span>
+            </div>
+          )}
+          {refreshButton}
         </div>
       </div>
 
-      {/* Executive Summary */}
-      <div className="mt-4 rounded-lg bg-white/90 p-3.5 border border-slate-100 text-xs leading-relaxed text-slate-700 shadow-xs">
-        <p className="font-medium text-slate-800">{briefing.executiveSummary}</p>
-      </div>
+      {briefing.executiveSummary && (
+        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3.5">
+          <p className="text-xs font-medium leading-relaxed text-slate-800">{briefing.executiveSummary}</p>
+        </div>
+      )}
 
-      {/* Grid Highlights */}
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {/* Top Winner */}
         {briefing.topWinner && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-amber-100 bg-amber-50/50 p-3 text-xs">
-            <div className="mt-0.5 rounded-md bg-amber-100 p-1 text-amber-700">
-              <Trophy className="h-3.5 w-3.5" />
-            </div>
+          <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 p-3">
+            <Trophy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="font-bold text-amber-900">Produk Terlaris</p>
-              <p className="mt-0.5 line-clamp-2 text-slate-700 text-[11px]">{briefing.topWinner}</p>
+              <p className="text-xs font-semibold text-amber-900">Produk Terlaris</p>
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-700">{briefing.topWinner}</p>
             </div>
           </div>
         )}
 
-        {/* Critical Alerts */}
-        <div className="flex items-start gap-2.5 rounded-lg border border-rose-100 bg-rose-50/50 p-3 text-xs">
-          <div className="mt-0.5 rounded-md bg-rose-100 p-1 text-rose-700">
-            <AlertTriangle className="h-3.5 w-3.5" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-bold text-rose-900">Perhatian Mendesak</p>
-            {briefing.criticalAlerts && briefing.criticalAlerts.length > 0 ? (
-              <p className="mt-0.5 line-clamp-2 text-slate-700 text-[11px]">{briefing.criticalAlerts[0]}</p>
-            ) : (
-              <p className="mt-0.5 text-emerald-700 text-[11px]">Tidak ada alert kritis aktif.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Market Outlook */}
-        {briefing.marketOutlook && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-xs">
-            <div className="mt-0.5 rounded-md bg-blue-100 p-1 text-blue-700">
-              <TrendingUp className="h-3.5 w-3.5" />
-            </div>
+        {/* An absent array means the backend could not evaluate alerts; an empty array
+            means it evaluated them and found none. Only the latter is an all-clear. */}
+        {alerts !== null && (
+          <div className="flex items-start gap-2.5 rounded-md border border-rose-200 bg-rose-50 p-3">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-700" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="font-bold text-blue-900">Market Outlook</p>
-              <p className="mt-0.5 line-clamp-2 text-slate-700 text-[11px]">{briefing.marketOutlook}</p>
+              <p className="text-xs font-semibold text-rose-900">Perhatian Mendesak</p>
+              <p className={`mt-0.5 line-clamp-2 text-[11px] ${alerts.length ? 'text-slate-700' : 'text-emerald-700'}`}>
+                {alerts.length ? alerts[0] : 'Tidak ada alert kritis aktif.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {briefing.marketOutlook && (
+          <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3">
+            <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-700" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-blue-900">Prospek Pasar</p>
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-700">{briefing.marketOutlook}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Priority Action Tasks Today */}
-      {briefing.priorityActionsToday && briefing.priorityActionsToday.length > 0 && (
-        <div className="mt-4 border-t border-slate-200/60 pt-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Fokus Prioritas Hari Ini</p>
-            <Link href="/actions" className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700">
-              Buka Pusat Tindakan <ArrowRight className="h-3 w-3" />
+      {briefing.priorityActionsToday?.length > 0 && (
+        <div className="mt-4 border-t border-slate-200 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Fokus Prioritas Hari Ini</p>
+            <Link href="/actions" className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-800">
+              Buka Pusat Tindakan <ArrowRight className="h-3 w-3" aria-hidden="true" />
             </Link>
           </div>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             {briefing.priorityActionsToday.map((action, idx) => (
-              <div key={idx} className="flex items-start gap-2 rounded-lg bg-white p-2.5 border border-slate-100 text-xs">
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
-                <span className="text-slate-700 text-[11px] font-medium leading-snug">{action}</span>
+              <div key={idx} className="flex items-start gap-2 rounded-md border border-slate-200 bg-white p-2.5">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" aria-hidden="true" />
+                <span className="text-[11px] font-medium leading-snug text-slate-700">{action}</span>
               </div>
             ))}
           </div>

@@ -4,13 +4,16 @@ import { useState, useEffect } from 'react';
 import { Calculator, Sparkles, RefreshCw, AlertCircle, CheckCircle2, TrendingUp, ShieldAlert, DollarSign } from 'lucide-react';
 import { simulateAIDynamicPricing } from '../lib/api';
 import { formatIDR, formatPercent } from '../lib/utils';
+import AIStatusNotice from './AIStatusNotice';
 
 export default function ProductPricingSimulator({ product, initialEconomics = null, competitorPrice = 0 }) {
   const [testPrice, setTestPrice] = useState(product?.price || 0);
   const [unitCost, setUnitCost] = useState(initialEconomics?.unitCost ?? 0);
   const [unitAdCost, setUnitAdCost] = useState(initialEconomics?.unitAdCost ?? 0);
   const [shippingCost, setShippingCost] = useState(initialEconomics?.shippingCost ?? 0);
-  const [platformFeePercent, setPlatformFeePercent] = useState(initialEconomics?.platformFeePercent ?? 6.5);
+  // No 6.5% default: the fee drives margin, breakeven and safety floor, so assuming it
+  // produced figures that looked measured but rested on a guess.
+  const [platformFeePercent, setPlatformFeePercent] = useState(initialEconomics?.platformFeePercent ?? '');
   const [compPrice, setCompPrice] = useState(competitorPrice || 0);
 
   const [simulation, setSimulation] = useState(null);
@@ -33,12 +36,10 @@ export default function ProductPricingSimulator({ product, initialEconomics = nu
         unitCost: Number(unitCost) || 0,
         unitAdCost: Number(unitAdCost) || 0,
         shippingCost: Number(shippingCost) || 0,
-        platformFeePercent: Number(platformFeePercent) || 6.5,
+        platformFeePercent: platformFeePercent === '' ? null : Number(platformFeePercent),
         competitorPrice: Number(compPrice) || 0,
       });
-      if (res) {
-        setSimulation(res);
-      }
+      setSimulation(res || null);
     } catch (err) {
       console.warn('Failed to run pricing simulation:', err);
     } finally {
@@ -46,11 +47,13 @@ export default function ProductPricingSimulator({ product, initialEconomics = nu
     }
   };
 
+  // calculations is backend arithmetic and stays visible; aiAdvice is model prose and
+  // only exists on a live result.
   const calc = simulation?.calculations;
-  const advice = simulation?.aiAdvice;
+  const advice = simulation?.success ? simulation.aiAdvice : null;
 
   return (
-    <section className="surface overflow-hidden border border-slate-200 shadow-xs">
+    <section className="surface overflow-hidden border border-slate-200 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white">
@@ -66,7 +69,7 @@ export default function ProductPricingSimulator({ product, initialEconomics = nu
           type="button"
           onClick={runSimulation}
           disabled={loading || !testPrice}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60 transition"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition"
         >
           {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           <span>{loading ? 'Simulasi Berjalan...' : simulation ? 'Uji Ulang Skenario' : 'Jalankan Simulasi'}</span>
@@ -155,6 +158,9 @@ export default function ProductPricingSimulator({ product, initialEconomics = nu
           </div>
         ) : (
           <div className="space-y-4 pt-2">
+            {/* Margin arithmetic still renders below; only the model's prose is withheld.
+                AIStatusNotice renders nothing on a successful result. */}
+            <AIStatusNotice result={simulation} />
             {/* Calculation Cards */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <div className="rounded-lg bg-slate-50 p-3 border border-slate-200">
@@ -174,7 +180,7 @@ export default function ProductPricingSimulator({ product, initialEconomics = nu
                 <p className={`mt-1 text-sm font-bold ${calc?.grossMarginAmount > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {formatIDR(calc?.grossMarginAmount)}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-500">{calc?.grossMarginPercent}% margin</p>
+                <p className="text-[10px] font-semibold text-slate-500">{formatPercent(calc?.grossMarginPercent)} margin</p>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3 border border-slate-200">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sparkles, Copy, Check, RefreshCw, Wand2, Layers, Tag, ChevronRight } from 'lucide-react';
 import { generateAIABCopy } from '../lib/api';
+import AIStatusNotice from './AIStatusNotice';
 
 export default function ProductABCopywriter({ product }) {
   const [loading, setLoading] = useState(false);
@@ -17,15 +18,13 @@ export default function ProductABCopywriter({ product }) {
     try {
       const res = await generateAIABCopy({
         name: product.name,
-        category: product.category || 'Fashion',
+        category: product.category || '',
         price: product.price,
         description: product.description || '',
         targetAudience,
       });
-      if (res && res.variations) {
-        setData(res);
-        setActiveTab(0);
-      }
+      setData(res || null);
+      setActiveTab(0);
     } catch (err) {
       console.warn('Failed to generate A/B copy:', err);
     } finally {
@@ -42,7 +41,7 @@ export default function ProductABCopywriter({ product }) {
   const currentVariant = data?.variations?.[activeTab];
 
   return (
-    <section className="surface overflow-hidden border border-slate-200 shadow-xs">
+    <section className="surface overflow-hidden border border-slate-200 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-600 text-white">
@@ -58,7 +57,7 @@ export default function ProductABCopywriter({ product }) {
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 disabled:opacity-60 transition"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60 transition"
         >
           {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           <span>{loading ? 'Menghasilkan Copy...' : data ? 'Regenerasi Copy' : 'Generate 3 Variasi'}</span>
@@ -74,6 +73,8 @@ export default function ProductABCopywriter({ product }) {
               Klik tombol di atas untuk membuat 3 set judul dan deskripsi siap pakai untuk listing Shopee Anda.
             </p>
           </div>
+        ) : !data.success || !data.variations?.length ? (
+          <AIStatusNotice result={data} />
         ) : (
           <div className="space-y-4">
             {/* Tabs for variations */}
@@ -85,7 +86,7 @@ export default function ProductABCopywriter({ product }) {
                   onClick={() => setActiveTab(idx)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                     activeTab === idx
-                      ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs'
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-sm'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >

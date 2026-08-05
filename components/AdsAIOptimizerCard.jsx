@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Target, Sparkles, RefreshCw, Copy, Check, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Zap, Layers } from 'lucide-react';
 import { optimizeAIAdsKeywords } from '../lib/api';
 import { formatIDR, formatPercent } from '../lib/utils';
+import AIStatusNotice from './AIStatusNotice';
 
 export default function AdsAIOptimizerCard({ adsData }) {
   const [selectedCampaign, setSelectedCampaign] = useState(adsData?.topCampaigns?.[0]?.name || 'Semua Kampanye Iklan');
@@ -28,11 +29,8 @@ export default function AdsAIOptimizerCard({ adsData }) {
         sales: currentCamp.sales,
         roas: currentCamp.roas,
         ctr: currentCamp.ctr,
-        category: 'Fashion & Apparel',
       });
-      if (res) {
-        setData(res);
-      }
+      setData(res || null);
     } catch (err) {
       console.warn('Failed to optimize ads:', err);
     } finally {
@@ -48,7 +46,7 @@ export default function AdsAIOptimizerCard({ adsData }) {
   };
 
   return (
-    <section className="surface overflow-hidden border border-slate-200 shadow-xs">
+    <section className="surface overflow-hidden border border-slate-200 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-600 text-white">
@@ -82,7 +80,7 @@ export default function AdsAIOptimizerCard({ adsData }) {
             type="button"
             onClick={handleOptimize}
             disabled={loading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 disabled:opacity-60 transition"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60 transition"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             <span>{loading ? 'Menganalisis...' : data ? 'Analisis Ulang' : 'Optimasi Iklan'}</span>
@@ -99,6 +97,8 @@ export default function AdsAIOptimizerCard({ adsData }) {
               Pilih kampanye dan klik &quot;Optimasi Iklan&quot; untuk menemukan kata kunci boncos dan strategi bid optimal di Shopee Ads.
             </p>
           </div>
+        ) : !data.success ? (
+          <AIStatusNotice result={data} />
         ) : (
           <div className="space-y-5">
             {/* Overview Banner */}
@@ -131,7 +131,7 @@ export default function AdsAIOptimizerCard({ adsData }) {
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {data.negativeKeywordsToExclude.map((kw, i) => (
-                    <span key={i} className="rounded-md bg-white border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-800 shadow-2xs">
+                    <span key={i} className="rounded-md bg-white border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-800 shadow-sm">
                       - {kw}
                     </span>
                   ))}
@@ -148,7 +148,7 @@ export default function AdsAIOptimizerCard({ adsData }) {
                 <span className="text-xs font-bold text-slate-900">Rekomendasi Penyesuaian Nilai Bid:</span>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {data.bidAdjustments.map((adj, idx) => (
-                    <div key={idx} className="rounded-lg bg-white p-3 border border-slate-200 shadow-2xs text-xs space-y-1">
+                    <div key={idx} className="rounded-lg bg-white p-3 border border-slate-200 shadow-sm text-xs space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-slate-800">{adj.keywordType}</span>
                         <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold ${
