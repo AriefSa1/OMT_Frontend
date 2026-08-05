@@ -29,9 +29,18 @@ Runs on `http://localhost:3000` and expects the backend on `http://localhost:500
 npm run build
 ```
 
+`npm run build` rewrites `.next` in place. A `next start` server already serving that
+directory keeps emitting the previous chunk hashes, so every asset 404s: the page still
+renders from SSR but never hydrates, and every button silently does nothing — it looks
+exactly like a broken login, not like a build problem. **Restart the server after
+building**, or check the network panel for 404s on `/_next/static/chunks/*` first.
+
 ```bash
 npm run lint
 ```
+
+`next lint` has no ESLint config in this repo yet and opens an interactive setup wizard,
+so it cannot run unattended. Verify with `npm run build` until someone configures it.
 
 ## Coding Style & Naming Conventions
 
