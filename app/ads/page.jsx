@@ -89,29 +89,46 @@ export default function AdsPage() {
       </PageHeader>
 
       {/* Period Selection Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-700">Periode Iklan:</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+            <Clock className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-800">Periode Iklan</span>
+              {loading && <RefreshCw className="h-3 w-3 animate-spin text-rose-500" />}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              {period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
+              {period === 'yesterday' && 'Data performa penutupan hari kemarin'}
+              {period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
+              {period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setPeriod(opt.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${
-                period === opt.id
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
-              }`}
-            >
-              {opt.badge && (
-                <span className={`h-1.5 w-1.5 rounded-full ${period === opt.id ? 'bg-white' : 'bg-emerald-500'}`} />
-              )}
-              {opt.label}
-            </button>
-          ))}
+          {PERIOD_OPTIONS.map((opt) => {
+            const isActive = period === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={loading && isActive}
+                onClick={() => setPeriod(opt.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  isActive
+                    ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
+                } ${loading ? 'opacity-90' : ''}`}
+              >
+                {opt.badge && (
+                  <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
+                )}
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -121,14 +138,26 @@ export default function AdsPage() {
           value={formatIDR(ads?.totalSpend)}
           icon={CircleDollarSign}
           tone="rose"
-          subtitle={isRealTime ? 'Total biaya berjalan hari ini' : 'Nilai setelah normalisasi'}
+          subtitle={
+            period === 'real_time'
+              ? 'Biaya berjalan hari ini'
+              : period === 'yesterday'
+              ? 'Total biaya iklan kemarin'
+              : `Total biaya ${period === 'past7days' ? '7 hari' : '30 hari'} terakhir`
+          }
         />
         <MetricCard
           title="Penjualan dari Iklan"
           value={formatIDR(ads?.totalSalesGenerated)}
           icon={BarChart3}
           tone="slate"
-          subtitle="GMV yang dihasilkan kampanye"
+          subtitle={
+            period === 'real_time'
+              ? 'GMV iklan hari ini'
+              : period === 'yesterday'
+              ? 'GMV iklan kemarin'
+              : `GMV ${period === 'past7days' ? '7 hari' : '30 hari'} terakhir`
+          }
         />
         <MetricCard
           title="ROAS"
