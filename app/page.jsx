@@ -10,7 +10,8 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
 import DailyBriefingCard from '../components/DailyBriefingCard';
-import { fetchDashboardOverview, fetchSyncLogs } from '../lib/api';
+import TrafficSourcePanel from '../components/TrafficSourcePanel';
+import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 
@@ -31,13 +32,15 @@ function MetricLoading() {
 export default function DashboardOverview() {
   const [data, setData] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [traffic, setTraffic] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [overview, logData] = await Promise.all([fetchDashboardOverview(), fetchSyncLogs()]);
+    const [overview, logData, trafficData] = await Promise.all([fetchDashboardOverview(), fetchSyncLogs(), fetchTrafficSources(7)]);
     setData(overview);
     setLogs(logData?.logs || []);
+    setTraffic(trafficData);
     setLoading(false);
   }, []);
 
@@ -141,6 +144,8 @@ export default function DashboardOverview() {
           {/* Shopee publishes no denominator for a cancellation rate, so none is shown. */}
           <p className="mt-5 text-[11px] leading-5 text-slate-500">Angka absolut dari Seller Center. Persentase pembatalan tidak dihitung karena penyebutnya tidak tersedia.</p>
         </section>
+
+        <TrafficSourcePanel traffic={traffic} loading={loading} />
       </div>
     </div>
   );
