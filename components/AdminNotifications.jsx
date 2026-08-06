@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Bell, Check, Send, Settings2, X } from 'lucide-react';
+import InfoTooltip from './InfoTooltip';
 import {
   fetchAdminUsers, fetchNotificationChannels, fetchNotificationConfig,
   updateNotificationConfig, sendNotification, sendTestNotification, fetchNotificationLogs,
@@ -158,8 +159,10 @@ export default function AdminNotifications() {
             </div>
 
             <label className="mt-3 block">
-              <span className="text-[11px] font-medium text-slate-500">
-                Discord Webhook URL {config?.discordConfigured && <span className="text-emerald-600">· tersimpan {config.discordHint}</span>}
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                Discord Webhook URL
+                <InfoTooltip label="Discord Webhook">Di server Discord: Pengaturan Channel → Integrations → Webhooks → New Webhook → Copy URL. Tempel di sini.</InfoTooltip>
+                {config?.discordConfigured && <span className="text-emerald-600">· tersimpan {config.discordHint}</span>}
               </span>
               <input
                 type="password"
@@ -171,8 +174,10 @@ export default function AdminNotifications() {
             </label>
 
             <label className="mt-3 block">
-              <span className="text-[11px] font-medium text-slate-500">
-                Telegram Chat ID {config?.telegramConfigured && <span className="text-emerald-600">· tersimpan</span>}
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                Telegram Chat ID
+                <InfoTooltip label="Telegram Chat ID">ID chat tujuan. Pengguna kirim pesan ke bot Anda, lalu buka api.telegram.org/bot&lt;token&gt;/getUpdates untuk melihat chat.id. Butuh TELEGRAM_BOT_TOKEN di server.</InfoTooltip>
+                {config?.telegramConfigured && <span className="text-emerald-600">· tersimpan</span>}
               </span>
               <input
                 type="text"
@@ -260,7 +265,10 @@ export default function AdminNotifications() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {logs.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Belum ada pengiriman.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">
+                  Belum ada pengiriman.
+                  <span className="mt-1 block text-xs text-slate-400">Riwayat muncul setelah Anda mengirim notifikasi ke pengguna.</span>
+                </td></tr>
               ) : logs.map((l) => (
                 <tr key={l.id} className="hover:bg-slate-50/70">
                   <td className="px-4 py-2.5 text-slate-500">{new Date(l.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
