@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import AdminStoreAnalytics from '../../components/AdminStoreAnalytics';
 import {
   Activity,
   AlertCircle,
   AlertTriangle,
   ArrowRight,
+  BarChart3,
   Check,
   CheckCircle2,
   Clock,
@@ -626,6 +628,18 @@ export default function AdminPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
+              activeTab === 'analytics'
+                ? 'border-rose-600 text-rose-700 font-semibold'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span>Statistik &amp; Analitik</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('codes')}
             className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
               activeTab === 'codes'
@@ -1021,6 +1035,11 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* TAB: STATISTIK & ANALITIK LINTAS TOKO */}
+      {/* ========================================================================= */}
+      {activeTab === 'analytics' && <AdminStoreAnalytics />}
 
       {/* ========================================================================= */}
       {/* TAB 3: GENERATOR KODE REGISTRASI & UNDANGAN */}
