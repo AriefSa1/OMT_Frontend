@@ -11,6 +11,7 @@ import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
 import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
+import { useStore } from '../../context/StoreContext';
 
 const PERIOD_OPTIONS = [
   { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
@@ -26,6 +27,7 @@ export default function AdsPage() {
   const [period, setPeriod] = useState('real_time');
   const [campaignSort, setCampaignSort] = useState('spend');
   const [campaignDirection, setCampaignDirection] = useState('desc');
+  const { selectedStoreId } = useStore();
 
   const loadAds = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
@@ -34,6 +36,7 @@ export default function AdsPage() {
         period: selectedPeriod,
         sort_by: campaignSort,
         direction: campaignDirection,
+        store_id: selectedStoreId || undefined,
       });
       setAds(response?.success ? response : null);
     } catch (err) {
@@ -41,7 +44,7 @@ export default function AdsPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, campaignSort, campaignDirection]);
+  }, [period, campaignSort, campaignDirection, selectedStoreId]);
 
   useEffect(() => {
     loadAds(period);
@@ -51,7 +54,7 @@ export default function AdsPage() {
 
   const sync = async () => {
     setSyncing(true);
-    await triggerFullSync();
+    await triggerFullSync(selectedStoreId);
     await loadAds(period);
     setSyncing(false);
   };

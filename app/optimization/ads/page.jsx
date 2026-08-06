@@ -10,16 +10,18 @@ import { DataSourceNote } from '../../../components/StatusBadge';
 import { fetchAdsOptimizations } from '../../../lib/api';
 import { useSnapshotRefresh } from '../../../lib/hooks';
 import { emptyListReason } from '../../../lib/utils';
+import { useStore } from '../../../context/StoreContext';
 
 export default function AdsOptimizationPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { selectedStoreId } = useStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    setData(await fetchAdsOptimizations());
+    setData(await fetchAdsOptimizations(selectedStoreId));
     setLoading(false);
-  }, []);
+  }, [selectedStoreId]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);

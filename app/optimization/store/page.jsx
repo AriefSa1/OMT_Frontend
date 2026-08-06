@@ -10,16 +10,18 @@ import { DataSourceNote } from '../../../components/StatusBadge';
 import { fetchStoreOptimizations } from '../../../lib/api';
 import { useSnapshotRefresh } from '../../../lib/hooks';
 import { emptyListReason } from '../../../lib/utils';
+import { useStore } from '../../../context/StoreContext';
 
 export default function StoreOptimizationPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { selectedStoreId } = useStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    setData(await fetchStoreOptimizations());
+    setData(await fetchStoreOptimizations(selectedStoreId));
     setLoading(false);
-  }, []);
+  }, [selectedStoreId]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);

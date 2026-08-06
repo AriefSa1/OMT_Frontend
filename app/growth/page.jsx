@@ -11,6 +11,7 @@ import StatusBadge, { DataSourceNote, formatDataTime, formatSource } from '../..
 import { fetchGrowthIntelligence } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { emptyListReason, formatIDR, formatNumber } from '../../lib/utils';
+import { useStore } from '../../context/StoreContext';
 
 function Section({ title, description, children }) {
   return (
@@ -39,12 +40,13 @@ function UnavailablePanel({ title, block }) {
 export default function GrowthIntelligencePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { selectedStoreId } = useStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    setData(await fetchGrowthIntelligence());
+    setData(await fetchGrowthIntelligence(selectedStoreId));
     setLoading(false);
-  }, []);
+  }, [selectedStoreId]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);

@@ -14,6 +14,7 @@ import TrafficSourcePanel from '../components/TrafficSourcePanel';
 import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
+import { useStore } from '../context/StoreContext';
 
 const SalesChart = dynamic(() => import('../components/SalesChart'), {
   ssr: false,
@@ -34,15 +35,20 @@ export default function DashboardOverview() {
   const [logs, setLogs] = useState([]);
   const [traffic, setTraffic] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { selectedStoreId } = useStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [overview, logData, trafficData] = await Promise.all([fetchDashboardOverview(), fetchSyncLogs(), fetchTrafficSources(7)]);
+    const [overview, logData, trafficData] = await Promise.all([
+      fetchDashboardOverview(selectedStoreId),
+      fetchSyncLogs(),
+      fetchTrafficSources(7, selectedStoreId),
+    ]);
     setData(overview);
     setLogs(logData?.logs || []);
     setTraffic(trafficData);
     setLoading(false);
-  }, []);
+  }, [selectedStoreId]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);

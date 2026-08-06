@@ -4,11 +4,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { StoreProvider } from '../context/StoreContext';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
 export default function AppShell({ children }) {
-  return <AuthProvider><AppShellContent>{children}</AppShellContent></AuthProvider>;
+  return (
+    <AuthProvider>
+      <StoreProvider>
+        <AppShellContent>{children}</AppShellContent>
+      </StoreProvider>
+    </AuthProvider>
+  );
 }
 
 function AppShellContent({ children }) {

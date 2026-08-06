@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Megaphone, Settings, Sparkles, Store, TrendingUp, X } from 'lucide-react';
+import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Megaphone, Settings, ShieldCheck, Sparkles, Store, TrendingUp, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { label: 'Beranda', href: '/', icon: LayoutDashboard },
@@ -24,6 +25,9 @@ function isActivePath(pathname, href) {
 
 export default function Sidebar({ mobile = false, onClose }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const content = (
     <div className="flex h-full flex-col bg-white">
       <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
@@ -46,8 +50,35 @@ export default function Sidebar({ mobile = false, onClose }) {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <div className="pt-2">
+            <div className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+              Administrasi
+            </div>
+            <Link
+              href="/admin"
+              onClick={onClose}
+              className={`flex h-10 items-center justify-between rounded-md px-3 text-sm font-medium transition-colors ${
+                isActivePath(pathname, '/admin')
+                  ? 'bg-rose-50 text-rose-700 font-semibold'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-rose-600" />
+                <span>Panel Admin</span>
+              </div>
+              <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
+                PRO
+              </span>
+            </Link>
+          </div>
+        )}
       </nav>
-      <div className="border-t border-slate-200 p-4 text-xs leading-5 text-slate-500">Snapshot lokal diperbarui melalui tombol Sync atau jadwal otomatis.</div>
+      <div className="border-t border-slate-200 p-4 text-xs leading-5 text-slate-500">
+        Snapshot lokal diperbarui melalui tombol Sync atau jadwal otomatis.
+      </div>
     </div>
   );
   if (mobile) {

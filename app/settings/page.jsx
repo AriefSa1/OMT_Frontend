@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, RefreshCw, Save, Settings2, ShieldCheck } from 'lucide-react';
+import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
-import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie } from '../../lib/api';
+import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
+import { useStore } from '../../context/StoreContext';
 
 const DEFAULT_WAREHOUSE_LOGIN_URL = 'https://pdcgudang.et.r.appspot.com/v1/users/login';
 const DEFAULT_WAREHOUSE_INVENTORY_URL = 'https://pdcgudang.et.r.appspot.com/v1/products/list';
@@ -30,9 +31,13 @@ export default function SettingsPage() {
   const [cookieStoreName, setCookieStoreName] = useState('');
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [syncingStoreId, setSyncingStoreId] = useState(null);
   const [testingWarehouse, setTestingWarehouse] = useState(false);
   const [warehouseTestResult, setWarehouseTestResult] = useState(null);
   const [message, setMessage] = useState('');
+  const [showAddStore, setShowAddStore] = useState(false);
+
+  const { stores, selectedStoreId, switchStore, toggleStoreActive, removeStore, refreshStores } = useStore();
 
   const loadData = useCallback(async () => {
     const [settingsData, statusData, logsData] = await Promise.all([
@@ -64,10 +69,7 @@ export default function SettingsPage() {
     setSaving(true);
     const payload = { ...form };
     if (!payload.warehousePassword) delete payload.warehousePassword;
-    // Blank means "leave as is" for write-only secrets; sending '' would erase them.
     if (!payload.geminiApiKey) delete payload.geminiApiKey;
-    // These are server-derived status flags, not settings. Echoing them back made the
-    // client look like it was trying to set them.
     delete payload.cookieConfigured;
     delete payload.warehouseLoginConfigured;
     delete payload.warehouseCredentialsConfigured;
@@ -118,19 +120,51 @@ export default function SettingsPage() {
     const response = await updateShopeeCookie(cookie.trim(), cookieStoreName.trim());
     setMessage(
       response.success
-        ? 'Sesi Shopee tersimpan dan snapshot katalog diperbarui.'
+        ? 'Sesi Shopee toko tersimpan dan sinkronisasi awal berhasil!'
         : response.error || response.message || 'Sesi Shopee tidak dapat dihubungkan.'
     );
-    if (response.success) setCookie('');
+    if (response.success) {
+      setCookie('');
+      setCookieStoreName('');
+      setShowAddStore(false);
+      await refreshStores();
+    }
     await loadData();
     setConnecting(false);
+  };
+
+  const handleSyncStore = async (storeId) => {
+    setSyncingStoreId(storeId);
+    try {
+      const res = await triggerShopeeSync(storeId);
+      setMessage(res.message || (res.success ? 'Sinkronisasi toko berhasil.' : 'Sinkronisasi gagal.'));
+      await refreshStores();
+      await loadData();
+    } catch (err) {
+      setMessage(`Sync gagal: ${err.message}`);
+    } finally {
+      setSyncingStoreId(null);
+    }
+  };
+
+  const handleToggleStore = async (storeId, currentStatus) => {
+    const res = await toggleStoreActive(storeId, !currentStatus);
+    setMessage(res.message || 'Status toko diperbarui.');
+  };
+
+  const handleDeleteStore = async (storeId, name) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Yakin ingin menghapus sesi toko "${name}"?`)) {
+      return;
+    }
+    const res = await removeStore(storeId);
+    setMessage(res.message || 'Sesi toko dihapus.');
   };
 
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pengaturan" description="Kelola koneksi sumber data Shopee & PDC Gudang serta jadwal pembaruan snapshot." />
+      <PageHeader title="Pengaturan" description="Kelola multi-toko Shopee, koneksi PDC Gudang, dan jadwal pembaruan snapshot." />
 
       {message && (
         <div className="surface-muted flex items-center justify-between gap-3 px-4 py-3 text-xs text-slate-700">
@@ -149,11 +183,11 @@ export default function SettingsPage() {
         </div>
         <div className="grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <div className="p-5">
-            <p className="text-xs font-medium text-slate-500">Shopee Seller Center</p>
+            <p className="text-xs font-medium text-slate-500">Shopee Multi-Toko</p>
             <div className="mt-2">
-              <StatusBadge status={connections?.snapshots?.shopee?.status || 'Tidak Tersedia'} />
+              <StatusBadge status={stores.some((s) => s.isActive) ? 'Segar' : 'Tidak Tersedia'} />
             </div>
-            <p className="mt-3 text-xs text-slate-600 font-medium">{connections?.connections?.shopee?.storeName || 'Belum terhubung'}</p>
+            <p className="mt-3 text-xs text-slate-600 font-medium">{stores.length} Toko Terhubung</p>
           </div>
           <div className="p-5">
             <p className="text-xs font-medium text-slate-500">Shopee Ads & Performance</p>
@@ -174,54 +208,155 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {/* Shopee Session */}
-        <form onSubmit={connectCookie} className="surface p-5">
+      {/* Multi-Store Shopee Connection Section */}
+      <section className="surface p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-700">
-              <KeyRound className="h-4 w-4" />
+              <Store className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Sesi Shopee</h2>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Simpan Cookie header Seller Center. Sistem memeriksa CTOKEN atau SPC_CDS untuk melakukan Sync katalog & performa.
+              <h2 className="text-sm font-semibold text-slate-900">Koneksi Multi-Toko Shopee</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Hubungkan dan kelola beberapa toko Shopee sekaligus. Setiap toko memiliki sesi, sinkronisasi katalog, dan metrik iklan terisolasi.
               </p>
             </div>
           </div>
-          <div className="mt-5 space-y-4">
-            <label className="block">
-              <span className="text-xs font-medium text-slate-700">Nama toko</span>
-              <input
-                value={cookieStoreName}
-                onChange={(event) => setCookieStoreName(event.target.value)}
-                placeholder="Nama toko di Shopee"
-                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-slate-700">Cookie header</span>
-              <textarea
-                value={cookie}
-                onChange={(event) => setCookie(event.target.value)}
-                placeholder="Tempel Cookie header lengkap dari browser Network tab (misal: SPC_CDS=...; SPC_EC=...)"
-                rows="7"
-                className="mt-1 w-full resize-y rounded-md border border-slate-300 px-3 py-2 font-mono text-xs text-slate-800"
-              />
-            </label>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-slate-500">Tersimpan: {settings?.cookieConfigured ? 'Ya' : 'Belum'}</span>
+          <button
+            type="button"
+            onClick={() => setShowAddStore((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>{showAddStore ? 'Tutup Form' : 'Hubungkan Toko Baru'}</span>
+          </button>
+        </div>
+
+        {/* Store List Table */}
+        <div className="overflow-x-auto rounded-lg border border-slate-200 mt-2">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3">Nama Toko</th>
+                <th className="px-4 py-3">Store ID</th>
+                <th className="px-4 py-3">Katalog Produk</th>
+                <th className="px-4 py-3">Terakhir Sync</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {stores.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                    Belum ada toko Shopee terhubung. Klik &quot;Hubungkan Toko Baru&quot; di atas untuk menambahkan.
+                  </td>
+                </tr>
+              ) : (
+                stores.map((s) => (
+                  <tr key={s.storeId} className="hover:bg-slate-50/70 transition">
+                    <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${s.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      <span>{s.storeName}</span>
+                      {selectedStoreId === s.storeId && (
+                        <span className="rounded-sm bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">Terpilih</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-slate-500">{s.storeId}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">{s.productCount || 0} item</td>
+                    <td className="px-4 py-3 text-slate-500">{formatDataTime(s.lastSyncedAt)}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStore(s.storeId, s.isActive)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition ${
+                          s.isActive ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                        title="Klik untuk mengaktifkan/menonaktifkan"
+                      >
+                        <Power className="h-3 w-3" />
+                        <span>{s.isActive ? 'Aktif' : 'Non-Aktif'}</span>
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleSyncStore(s.storeId)}
+                          disabled={syncingStoreId === s.storeId}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          title="Sinkronkan toko ini"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${syncingStoreId === s.storeId ? 'animate-spin text-rose-600' : ''}`} />
+                          <span>Sync</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStore(s.storeId, s.storeName)}
+                          className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 p-1 text-red-600 hover:bg-red-100"
+                          title="Hapus sesi toko ini"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Add Store Form Modal / Accordion */}
+        {showAddStore && (
+          <form onSubmit={connectCookie} className="rounded-xl border border-rose-200 bg-rose-50/30 p-4 space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 text-xs font-semibold text-rose-900">
+              <KeyRound className="h-4 w-4 text-rose-600" />
+              <span>Form Hubungkan Toko Shopee Baru</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-medium text-slate-700">Nama Toko</span>
+                <input
+                  value={cookieStoreName}
+                  onChange={(event) => setCookieStoreName(event.target.value)}
+                  placeholder="Contoh: Toko Fashion Official"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-rose-500"
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-medium text-slate-700">Cookie Header Seller Center</span>
+                <textarea
+                  value={cookie}
+                  onChange={(event) => setCookie(event.target.value)}
+                  placeholder="Tempel Cookie header lengkap dari browser Network tab (misal: SPC_CDS=...; SPC_EC=...; SPC_U=...)"
+                  rows="4"
+                  className="mt-1 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-800 focus:outline-rose-500"
+                />
+              </label>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddStore(false)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Batal
+              </button>
               <button
                 type="submit"
                 disabled={connecting}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70"
+                className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70"
               >
-                <ShieldCheck className="h-4 w-4" />
-                {connecting ? 'Menghubungkan...' : 'Simpan dan Sync'}
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>{connecting ? 'Menghubungkan & Sync...' : 'Simpan dan Hubungkan'}</span>
               </button>
             </div>
-          </div>
-        </form>
+          </form>
+        )}
+      </section>
 
+      <div className="grid gap-6 xl:grid-cols-2">
         {/* Operational settings */}
         <form onSubmit={save} className="surface p-5">
           <div className="flex items-start gap-3">

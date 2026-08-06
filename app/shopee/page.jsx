@@ -12,6 +12,7 @@ import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import { fetchProductDetail, fetchShopeeCatalog, triggerShopeeSync } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
+import { useStore } from '../../context/StoreContext';
 
 export default function ShopeeCatalogPage() {
   const [catalog, setCatalog] = useState(null);
@@ -24,6 +25,7 @@ export default function ShopeeCatalogPage() {
   const [syncing, setSyncing] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
+  const { selectedStoreId } = useStore();
   // Baris varian dibuka per produk. Varian sudah ikut dalam respons katalog, jadi
   // membukanya tidak memicu permintaan baru.
   const [expanded, setExpanded] = useState(() => new Set());
@@ -32,10 +34,18 @@ export default function ShopeeCatalogPage() {
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
-    const result = await fetchShopeeCatalog({ page, limit: 20, search: appliedSearch, category, sort, direction });
+    const result = await fetchShopeeCatalog({
+      page,
+      limit: 20,
+      search: appliedSearch,
+      category,
+      sort,
+      direction,
+      store_id: selectedStoreId || undefined,
+    });
     setCatalog(result?.success ? result : null);
     setLoading(false);
-  }, [page, appliedSearch, category, sort, direction]);
+  }, [page, appliedSearch, category, sort, direction, selectedStoreId]);
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
   useEffect(() => {
@@ -63,7 +73,7 @@ export default function ShopeeCatalogPage() {
 
   const sync = async () => {
     setSyncing(true);
-    await triggerShopeeSync();
+    await triggerShopeeSync(selectedStoreId);
     await loadCatalog();
     setSyncing(false);
   };
