@@ -1,10 +1,23 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Download, Eye, Package, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
+import { Download, Eye, Package, RefreshCw, Search, TrendingDown, Wallet } from 'lucide-react';
 import { fetchAdminStores, fetchAdminWeeklyPerformance, downloadAdminDecliningCsv } from '../lib/api';
 import { formatNumber, formatIDR } from '../lib/utils';
 import Sparkline from './Sparkline';
+import InfoTooltip from './InfoTooltip';
+import DataSourceNote from './DataSourceNote';
+import EmptyState from './EmptyState';
+import { SkeletonStatCards, SkeletonCards } from './Skeleton';
+
+// Penjelasan singkat metrik & istilah, ditampilkan lewat ikon info agar pengguna tak menebak.
+const GLOSSARY = {
+  visitors: 'Pengunjung unik (UV) yang membuka halaman produk. Sinyal seberapa banyak trafik yang datang.',
+  units: 'Jumlah unit produk yang terjual (pesanan terkonfirmasi).',
+  sales: 'Omzet dari pesanan terkonfirmasi produk ini.',
+  streak: 'Berapa minggu berturut-turut metrik penentu turun dibanding minggu sebelumnya.',
+  declining: 'Produk ditandai menurun bila metrik penentu turun ≥ 2 minggu berturut dan pernah punya aktivitas.',
+};
 
 const WEEK_OPTIONS = [4, 8, 12];
 const METRICS = [
@@ -49,12 +62,15 @@ function Pct({ value }) {
 }
 
 // Satu "pilar" metrik (UV / Unit / Omzet) dengan ikon, sparkline, dan tren bersih.
-function MetricPillar({ icon: Icon, label, series, metricKey }) {
+function MetricPillar({ icon: Icon, label, series, metricKey, tip }) {
   const down = (series?.netPct ?? 0) < 0;
   return (
     <div className="flex-1 rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500"><Icon className="h-3 w-3" />{label}</span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+          <Icon className="h-3 w-3" />{label}
+          {tip && <InfoTooltip label={label}>{tip}</InfoTooltip>}
+        </span>
         <Pct value={series?.netPct} />
       </div>
       <div className="mt-1.5">
@@ -95,9 +111,9 @@ function DecliningCard({ product, primaryMetric }) {
 
       {/* Tiga pilar metrik berdampingan */}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <MetricPillar icon={Eye} label="UV" series={product.metrics?.visitors} metricKey="visitors" />
-        <MetricPillar icon={Package} label="Unit" series={product.metrics?.units} metricKey="units" />
-        <MetricPillar icon={Wallet} label="Omzet" series={product.metrics?.sales} metricKey="sales" />
+        <MetricPillar icon={Eye} label="UV" series={product.metrics?.visitors} metricKey="visitors" tip={GLOSSARY.visitors} />
+        <MetricPillar icon={Package} label="Unit" series={product.metrics?.units} metricKey="units" tip={GLOSSARY.units} />
+        <MetricPillar icon={Wallet} label="Omzet" series={product.metrics?.sales} metricKey="sales" tip={GLOSSARY.sales} />
       </div>
 
       {/* Rekomendasi tindakan */}
@@ -108,15 +124,16 @@ function DecliningCard({ product, primaryMetric }) {
   );
 }
 
-function SummaryCard({ label, value, tone = 'slate', dot }) {
+function SummaryCard({ label, value, tone = 'slate', dot, tip }) {
   const tones = {
     rose: 'text-rose-700', amber: 'text-amber-700', violet: 'text-violet-700', slate: 'text-slate-900',
   };
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center gap-1.5">
         {dot && <span className="h-2 w-2 rounded-full" style={{ background: dot }} />}
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+        {tip && <InfoTooltip label={label}>{tip}</InfoTooltip>}
       </div>
       <p className={`mt-1 text-2xl font-bold ${tones[tone]}`}>{value}</p>
     </div>
@@ -185,7 +202,10 @@ export default function AdminWeeklyPerformance() {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-slate-500">Metrik penentu</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+              Metrik penentu
+              <InfoTooltip label="Metrik penentu">{GLOSSARY.declining} Metrik ini yang memicu status menurun; UV/Unit/Omzet tetap ditampilkan sebagai konteks.</InfoTooltip>
+            </span>
             <select value={metric} onChange={(e) => setMetric(e.target.value)} className={selectClass}>
               {METRICS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
@@ -212,23 +232,29 @@ export default function AdminWeeklyPerformance() {
         </button>
       </div>
 
+      <DataSourceNote
+        source="Shopee Seller Center — Performa Produk"
+        cadence="disinkronkan otomatis tiap ±15 menit"
+        note="Metrik dikumpulkan harian, lalu dijumlahkan per blok 7 hari. Riwayat mingguan terbentuk seiring waktu."
+      />
+
       {error && <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
-      {/* Kartu ringkasan: langsung tampak sifat masalahnya */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryCard label="Produk Menurun" value={loading ? '…' : formatNumber(declining.length)} tone="rose" />
-        <SummaryCard label="Trafik Turun" value={loading ? '…' : formatNumber((breakdown.TRAFIK || 0) + (breakdown.TRAFIK_DAN_KONVERSI || 0))} tone="amber" dot="#d97706" />
-        <SummaryCard label="Konversi Turun" value={loading ? '…' : formatNumber((breakdown.KONVERSI || 0) + (breakdown.TRAFIK_DAN_KONVERSI || 0))} tone="violet" dot="#7c3aed" />
-        <SummaryCard label="Total Produk Aktif" value={loading ? '…' : formatNumber(products.length)} />
-      </div>
-
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white py-16 text-center text-sm text-slate-500 shadow-sm">
-          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-slate-400" />
-          <span className="mt-2 block">Memuat…</span>
+        <div className="space-y-5">
+          <SkeletonStatCards count={4} />
+          <SkeletonCards count={2} />
         </div>
       ) : (
-        <>
+        <div className="fade-in space-y-5">
+          {/* Kartu ringkasan: langsung tampak sifat masalahnya */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <SummaryCard label="Produk Menurun" value={formatNumber(declining.length)} tone="rose" tip="Jumlah produk yang menurun pada metrik penentu selama periode ini." />
+            <SummaryCard label="Trafik Turun" value={formatNumber((breakdown.TRAFIK || 0) + (breakdown.TRAFIK_DAN_KONVERSI || 0))} tone="amber" dot="#d97706" tip="Produk menurun yang penyebabnya berkurangnya pengunjung (UV)." />
+            <SummaryCard label="Konversi Turun" value={formatNumber((breakdown.KONVERSI || 0) + (breakdown.TRAFIK_DAN_KONVERSI || 0))} tone="violet" dot="#7c3aed" tip="Produk menurun yang pengunjungnya tetap ada tapi pembeliannya turun." />
+            <SummaryCard label="Total Produk Aktif" value={formatNumber(products.length)} tip="Produk yang punya data aktivitas pada periode ini." />
+          </div>
+
           {/* Produk perlu ditindak — kartu diagnosis */}
           <div>
             <div className="mb-2 flex items-center gap-2">
@@ -237,10 +263,12 @@ export default function AdminWeeklyPerformance() {
               <span className="text-xs text-slate-500">· menurun pada {metricLabel} · streak ≥ 2 minggu</span>
             </div>
             {declining.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-sm text-slate-500">
-                Tidak ada produk yang menurun pada {metricLabel} untuk periode ini.
-                <span className="mt-1 block text-xs text-slate-400">Data terisi seiring akumulasi snapshot harian.</span>
-              </div>
+              <EmptyState
+                icon={Search}
+                title={`Tidak ada produk menurun pada ${metricLabel}`}
+                message={`Untuk periode ${weeks} minggu ini, tak ada produk yang turun berturut-turut ≥ 2 minggu.`}
+                hint="Analisis mingguan butuh beberapa minggu riwayat snapshot harian agar bermakna. Coba metrik atau rentang minggu lain, atau tunggu data terkumpul."
+              />
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
                 {declining.map((p) => <DecliningCard key={p.shopeeItemId} product={p} primaryMetric={metric} />)}
@@ -278,7 +306,7 @@ export default function AdminWeeklyPerformance() {
               </div>
             </details>
           )}
-        </>
+        </div>
       )}
 
       <p className="text-[11px] text-slate-400">

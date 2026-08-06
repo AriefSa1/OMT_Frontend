@@ -7,6 +7,8 @@ import EmptyState from '../../components/EmptyState';
 import { fetchAccountOverview, changeAccountPassword } from '../../lib/api';
 import { formatIDR, formatNumber } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import DataSourceNote from '../../components/DataSourceNote';
+import { SkeletonLine } from '../../components/Skeleton';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -173,18 +175,40 @@ export default function AccountPage() {
         {/* Kolom kanan: ringkasan + daftar toko */}
         <div className="space-y-6 lg:col-span-2">
           <div className="grid grid-cols-3 gap-4">
-            <StatTile label="Total Toko" value={loading ? '…' : formatNumber(summary.totalStores)} />
-            <StatTile label="Toko Aktif" value={loading ? '…' : formatNumber(summary.activeStores)} />
-            <StatTile label="Total Produk" value={loading ? '…' : formatNumber(summary.totalProducts)} />
+            {loading ? (
+              [0, 1, 2].map((i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <SkeletonLine width="60%" className="h-2.5" />
+                  <SkeletonLine width="50%" className="mt-3 h-7" />
+                </div>
+              ))
+            ) : (
+              <>
+                <StatTile label="Total Toko" value={formatNumber(summary.totalStores)} />
+                <StatTile label="Toko Aktif" value={formatNumber(summary.activeStores)} />
+                <StatTile label="Total Produk" value={formatNumber(summary.totalProducts)} />
+              </>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-3.5">
-              <Store className="h-4 w-4 text-slate-500" />
-              <h2 className="text-sm font-semibold text-slate-900">Toko yang Anda Kelola</h2>
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <Store className="h-4 w-4 text-slate-500" />
+                <h2 className="text-sm font-semibold text-slate-900">Toko yang Anda Kelola</h2>
+              </div>
+              <DataSourceNote source="Shopee" cadence="sync tiap ±15 mnt" className="hidden sm:flex" />
             </div>
             {loading ? (
-              <div className="px-5 py-10 text-center text-sm text-slate-500">Memuat…</div>
+              <div className="divide-y divide-slate-100">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-4 px-5 py-4">
+                    <SkeletonLine className="flex-[2]" />
+                    <SkeletonLine className="flex-1" />
+                    <SkeletonLine className="flex-1" />
+                  </div>
+                ))}
+              </div>
             ) : stores.length === 0 ? (
               <div className="px-5 py-8">
                 <EmptyState

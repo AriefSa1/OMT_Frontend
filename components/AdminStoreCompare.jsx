@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { fetchAdminStoreCompare } from '../lib/api';
 import { formatIDR, formatNumber } from '../lib/utils';
+import { SkeletonLine } from './Skeleton';
 
 // Palet stabil per posisi toko, dipakai untuk garis grafik dan penanda.
 const SERIES_COLORS = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2'];
@@ -95,12 +96,21 @@ export default function AdminStoreCompare({ storeIds, days, onBack }) {
       {error && <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white py-16 text-center text-sm text-slate-500 shadow-sm">
-          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-slate-400" />
-          <span className="mt-2 block">Memuat pembanding…</span>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <SkeletonLine width="30%" className="h-4" />
+            <div className="mt-4 flex h-56 items-end gap-2">
+              {[45, 70, 35, 85, 55, 60, 40, 75, 50, 65].map((h, i) => (
+                <span key={i} className="skeleton flex-1 rounded-t" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonLine key={i} className="my-2 h-4" width={`${90 - i * 8}%`} />)}
+          </div>
         </div>
       ) : (
-        <>
+        <div className="fade-in space-y-5">
           {/* Grafik tren omzet harian */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-slate-900">Tren Omzet Harian</h3>
@@ -189,7 +199,7 @@ export default function AdminStoreCompare({ storeIds, days, onBack }) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
