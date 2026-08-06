@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
+import InfoTooltip from '../../../components/InfoTooltip';
 import Pagination from '../../../components/Pagination';
 import StatusBadge from '../../../components/StatusBadge';
 import { fetchShopeeProductPerformance, triggerShopeeSync } from '../../../lib/api';
@@ -324,7 +325,10 @@ export default function ShopeeProductPerformancePage() {
 
         <div className="surface p-4 border-l-4 border-l-indigo-500 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Pengunjung Produk</span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+              Pengunjung Produk
+              <InfoTooltip label="Pengunjung Produk">Pengunjung unik (UV) yang membuka halaman produk. "Kali dilihat" adalah total kunjungan (satu orang bisa melihat beberapa kali).</InfoTooltip>
+            </span>
             <div className="rounded-md bg-indigo-50 p-2 text-indigo-600"><Users className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
@@ -337,7 +341,10 @@ export default function ShopeeProductPerformancePage() {
 
         <div className="surface p-4 border-l-4 border-l-emerald-500 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Rata-rata Rasio Konversi</span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+              Rata-rata Rasio Konversi
+              <InfoTooltip label="Rasio Konversi">Persentase pengunjung yang jadi membeli = pesanan ÷ pengunjung (UV). Makin tinggi berarti halaman produk makin efektif mengubah trafik jadi penjualan.</InfoTooltip>
+            </span>
             <div className="rounded-md bg-emerald-50 p-2 text-emerald-600"><TrendingUp className="h-4 w-4" /></div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">

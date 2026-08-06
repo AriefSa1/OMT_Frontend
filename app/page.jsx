@@ -79,17 +79,18 @@ export default function DashboardOverview() {
       )}
 
       {loading ? <MetricLoading /> : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
-          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
-          <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" trend={trend?.roas} subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
-          <MetricCard title="Impresi iklan" value={formatNumber(data?.kpis?.impressions)} icon={Eye} tone="slate" trend={trend?.impressions} subtitle="Tayangan iklan pada snapshot iklan terakhir" />
-          <MetricCard title="Klik iklan" value={formatNumber(data?.kpis?.clicks)} icon={MousePointerClick} tone="slate" trend={trend?.clicks} subtitle={data?.kpis?.impressions ? `CTR ${formatPercent((Number(data.kpis.clicks) / Number(data.kpis.impressions)) * 100)}` : 'CTR belum dapat dihitung'} />
+        <div className="fade-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} tip="Gross Merchandise Value — total nilai pesanan terkonfirmasi pada hari terakhir tersimpan. Ini angka satu hari, bukan akumulasi." subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
+          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} tip="Jumlah pesanan terkonfirmasi pada hari terakhir tersimpan." subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
+          <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" trend={trend?.roas} tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan. 3x berarti tiap Rp1 iklan menghasilkan Rp3 penjualan. Makin tinggi makin efisien." subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
+          <MetricCard title="Impresi iklan" value={formatNumber(data?.kpis?.impressions)} icon={Eye} tone="slate" trend={trend?.impressions} tip="Berapa kali iklan ditayangkan pada snapshot iklan terakhir." subtitle="Tayangan iklan pada snapshot iklan terakhir" />
+          <MetricCard title="Klik iklan" value={formatNumber(data?.kpis?.clicks)} icon={MousePointerClick} tone="slate" trend={trend?.clicks} tip="Jumlah klik pada iklan. CTR = klik ÷ impresi, mengukur seberapa menarik iklannya." subtitle={data?.kpis?.impressions ? `CTR ${formatPercent((Number(data.kpis.clicks) / Number(data.kpis.impressions)) * 100)}` : 'CTR belum dapat dihitung'} />
           {/* A null count means "not measurable" and must not render as a green all-clear. */}
           <MetricCard
             title="Selisih stok"
             value={formatNumber(data?.kpis?.discrepanciesAlerts)}
             icon={Boxes}
+            tip="Jumlah SKU yang stok Shopee-nya berbeda dari stok gudang. Nilai kosong berarti belum bisa dihitung — bukan berarti nol selisih."
             tone={data?.kpis?.discrepanciesAlerts === null || data?.kpis?.discrepanciesAlerts === undefined
               ? 'slate'
               : Number(data.kpis.discrepanciesAlerts) ? 'amber' : 'emerald'}

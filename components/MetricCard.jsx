@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
+import InfoTooltip from './InfoTooltip';
 
 /**
  * `trend` adalah objek pembanding dari backend (`kpiTrend.<metrik>`):
@@ -13,7 +14,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
  * sesuai permintaan tampilan. Untuk metrik yang "naik = buruk" (mis. biaya iklan),
  * pemanggil dapat membalik warna lewat `invertTrendColor`.
  */
-export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 'slate', trend = null, invertTrendColor = false }) {
+export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 'slate', trend = null, invertTrendColor = false, tip = null }) {
   const tones = {
     slate: 'bg-slate-100 text-slate-700',
     rose: 'bg-rose-50 text-rose-700',
@@ -35,7 +36,10 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
   return (
     <section className="surface min-w-0 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-medium text-slate-600">{title}</p>
+        <p className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
+          {title}
+          {tip && <InfoTooltip label={title}>{tip}</InfoTooltip>}
+        </p>
         {Icon && <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tones[tone] || tones.slate}`}><Icon className="h-4 w-4" /></span>}
       </div>
       <div className="mt-4 flex flex-wrap items-baseline gap-2">

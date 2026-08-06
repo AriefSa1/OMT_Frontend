@@ -167,6 +167,7 @@ export default function AdsPage() {
           value={ads?.roas === null || ads?.roas === undefined ? 'Belum tersedia' : `${Number(ads.roas).toFixed(2)}x`}
           icon={Target}
           tone="emerald"
+          tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan. Di atas 1x berarti iklan menghasilkan lebih dari biayanya."
           subtitle="Penjualan dibagi biaya iklan"
         />
         <MetricCard
@@ -174,6 +175,7 @@ export default function AdsPage() {
           value={formatPercent(ads?.ctr)}
           icon={MousePointerClick}
           tone="slate"
+          tip="Click-Through Rate = klik ÷ impresi. Mengukur seberapa menarik iklan membuat orang mengklik."
           subtitle={`${formatNumber(ads?.clicks)} klik dari ${formatNumber(ads?.impressions)} impresi`}
         />
       </div>
