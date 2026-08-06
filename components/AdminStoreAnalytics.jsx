@@ -97,7 +97,6 @@ export default function AdminStoreAnalytics() {
       <AdminStoreCompare
         storeIds={selected}
         days={days}
-        stores={stores}
         onBack={() => setComparing(false)}
       />
     );
