@@ -176,11 +176,12 @@ export default function Navbar({ onMenu }) {
             <span className="hidden sm:inline">{syncing ? 'Menyinkronkan' : 'Sync'}</span>
           </button>
           <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-200 text-xs font-semibold text-slate-700">{user?.name?.slice(0, 1)?.toUpperCase() || <UserRound className="h-4 w-4" />}</span>
+            <Link href="/account" title="Detail akun" className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-300">{user?.name?.slice(0, 1)?.toUpperCase() || <UserRound className="h-4 w-4" />}</Link>
             <div className="flex flex-col text-left">
-              <button type="button" onClick={logout} className="max-w-28 truncate text-xs font-medium text-slate-700 hover:text-rose-700" title="Keluar">{user?.name || 'Keluar'}</button>
+              <Link href="/account" className="max-w-28 truncate text-xs font-medium text-slate-700 hover:text-rose-700" title="Detail akun">{user?.name || 'Akun'}</Link>
               <span className="text-[10px] font-semibold text-slate-400">{user?.role || 'USER'}</span>
             </div>
+            <button type="button" onClick={logout} className="ml-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:border-rose-200 hover:text-rose-700" title="Keluar">Keluar</button>
           </div>
         </div>
       </div>
