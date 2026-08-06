@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminStoreAnalytics from '../../components/AdminStoreAnalytics';
 import AdminWeeklyPerformance from '../../components/AdminWeeklyPerformance';
+import AdminNotifications from '../../components/AdminNotifications';
 import {
   Activity,
   AlertCircle,
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  Bell,
   Check,
   CheckCircle2,
   Clock,
@@ -654,6 +656,18 @@ export default function AdminPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('notifications')}
+            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
+              activeTab === 'notifications'
+                ? 'border-rose-600 text-rose-700 font-semibold'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+            }`}
+          >
+            <Bell className="h-4 w-4" />
+            <span>Notifikasi</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('codes')}
             className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
               activeTab === 'codes'
@@ -1059,6 +1073,11 @@ export default function AdminPage() {
       {/* TAB: PERFORMA MINGGUAN & PRODUK MENURUN */}
       {/* ========================================================================= */}
       {activeTab === 'weekly' && <AdminWeeklyPerformance />}
+
+      {/* ========================================================================= */}
+      {/* TAB: NOTIFIKASI (DISCORD/TELEGRAM) */}
+      {/* ========================================================================= */}
+      {activeTab === 'notifications' && <AdminNotifications />}
 
       {/* ========================================================================= */}
       {/* TAB 3: GENERATOR KODE REGISTRASI & UNDANGAN */}
