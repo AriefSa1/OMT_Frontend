@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -12,6 +12,25 @@ import {
   CartesianGrid
 } from 'recharts';
 import { formatIDR, formatNumber } from '../lib/utils';
+
+// Filter rentang waktu grafik. Data 30 hari sudah diterima dari server, jadi penyaringan
+// dilakukan di sisi klien — pergantian filter seketika tanpa memanggil server lagi.
+const PERIODS = [
+  { id: 'real_time', label: 'Real-time', days: 1 },
+  { id: 'yesterday', label: 'Kemarin', days: 1, offset: 1 },
+  { id: 'past7days', label: 'Minggu Lalu', days: 7 },
+  { id: 'past30days', label: 'Bulan Lalu', days: 30 },
+];
+
+function slicePeriod(data, periodId) {
+  const period = PERIODS.find((p) => p.id === periodId) || PERIODS[3];
+  if (period.id === 'past30days') return data;
+  if (period.id === 'yesterday') {
+    // Kemarin = satu hari sebelum baris terbaru (bila ada).
+    return data.length >= 2 ? [data[data.length - 2]] : data.slice(-1);
+  }
+  return data.slice(-period.days);
+}
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -36,14 +55,17 @@ export default function SalesChart({
   note,
   message,
 }) {
-  const points = data.length;
-  const firstDay = points ? data[0]?.day : null;
-  const lastDay = points ? data[points - 1]?.day : null;
-  const adPoints = data.filter((row) => row?.adSpend !== null && row?.adSpend !== undefined).length;
-  // The window is counted from the rows received. The old copy claimed a fixed
-  // "7-day window" regardless of how many days had actually been stored.
+  const [period, setPeriod] = useState('past30days');
+  const view = useMemo(() => slicePeriod(data, period), [data, period]);
+
+  const points = view.length;
+  const firstDay = points ? view[0]?.day : null;
+  const lastDay = points ? view[points - 1]?.day : null;
+  const adPoints = view.filter((row) => row?.adSpend !== null && row?.adSpend !== undefined).length;
+  // Titik sedikit (1-2 hari) tak membentuk garis; tampilkan titik agar tetap terbaca.
+  const showDots = points <= 3;
   const coverage = points
-    ? `${points} hari tersimpan${firstDay && lastDay ? ` (${firstDay} s.d. ${lastDay})` : ''} · biaya iklan terukur pada ${adPoints} dari ${points} hari`
+    ? `${points} hari${firstDay && lastDay ? ` (${firstDay === lastDay ? firstDay : `${firstDay} s.d. ${lastDay}`})` : ''} · biaya iklan terukur pada ${adPoints} dari ${points} hari`
     : null;
 
   return (
@@ -56,10 +78,27 @@ export default function SalesChart({
           </p>
           {note && <p className="mt-1 text-xs text-slate-500">{note}</p>}
         </div>
-        <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden="true" />GMV</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />Biaya iklan</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />Pesanan</span>
+        <div className="flex flex-col items-end gap-2.5">
+          {/* Filter rentang waktu */}
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            {PERIODS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPeriod(p.id)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  period === p.id ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden="true" />GMV</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />Biaya iklan</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />Pesanan</span>
+          </div>
         </div>
       </div>
 
@@ -73,7 +112,7 @@ export default function SalesChart({
             {/* Pesanan dipisahkan ke sumbu kanan: satuannya "pesanan" (puluhan), sedangkan
                 GMV dan biaya iklan rupiah (ratusan ribu). Satu sumbu bersama akan membuat
                 garis pesanan rata di dasar grafik dan tak terbaca. */}
-            <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <ComposedChart data={view} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#344054" stopOpacity={0.25} />
@@ -104,10 +143,12 @@ export default function SalesChart({
                 tick={{ fill: '#059669', fontSize: 11 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              {/* connectNulls stays off: a day without an ads snapshot must stay a gap. */}
-              <Area yAxisId="rupiah" type="monotone" dataKey="gmv" name="GMV" stroke="#344054" strokeWidth={2} fillOpacity={1} fill="url(#colorGmv)" />
-              <Area yAxisId="rupiah" type="monotone" dataKey="adSpend" name="Biaya iklan" stroke="#d92d70" strokeWidth={2} fillOpacity={1} fill="url(#colorAd)" />
-              <Line yAxisId="pesanan" type="monotone" dataKey="orders" name="Pesanan" stroke="#059669" strokeWidth={2} dot={false} />
+              {/* connectNulls tetap mati: hari tanpa snapshot iklan harus tetap jadi celah,
+                  bukan digambar seolah biayanya nol. Garis iklan menyambung penuh setelah
+                  riwayat iklan di-backfill (lihat tombol "Lengkapi data iklan"). */}
+              <Area yAxisId="rupiah" type="monotone" dataKey="gmv" name="GMV" stroke="#344054" strokeWidth={2} fillOpacity={1} fill="url(#colorGmv)" dot={showDots ? { r: 3, fill: '#344054' } : false} />
+              <Area yAxisId="rupiah" type="monotone" dataKey="adSpend" name="Biaya iklan" stroke="#d92d70" strokeWidth={2} fillOpacity={1} fill="url(#colorAd)" dot={showDots ? { r: 3, fill: '#d92d70' } : false} />
+              <Line yAxisId="pesanan" type="monotone" dataKey="orders" name="Pesanan" stroke="#059669" strokeWidth={2} dot={showDots ? { r: 3, fill: '#059669' } : false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
