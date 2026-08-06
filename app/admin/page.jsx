@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminStoreAnalytics from '../../components/AdminStoreAnalytics';
+import AdminWeeklyPerformance from '../../components/AdminWeeklyPerformance';
 import {
   Activity,
   AlertCircle,
@@ -27,6 +28,7 @@ import {
   ShieldCheck,
   Store,
   Trash2,
+  TrendingDown,
   UserCheck,
   UserCog,
   UserMinus,
@@ -640,6 +642,18 @@ export default function AdminPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('weekly')}
+            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
+              activeTab === 'weekly'
+                ? 'border-rose-600 text-rose-700 font-semibold'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+            }`}
+          >
+            <TrendingDown className="h-4 w-4" />
+            <span>Performa Mingguan</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('codes')}
             className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
               activeTab === 'codes'
@@ -1040,6 +1054,11 @@ export default function AdminPage() {
       {/* TAB: STATISTIK & ANALITIK LINTAS TOKO */}
       {/* ========================================================================= */}
       {activeTab === 'analytics' && <AdminStoreAnalytics />}
+
+      {/* ========================================================================= */}
+      {/* TAB: PERFORMA MINGGUAN & PRODUK MENURUN */}
+      {/* ========================================================================= */}
+      {activeTab === 'weekly' && <AdminWeeklyPerformance />}
 
       {/* ========================================================================= */}
       {/* TAB 3: GENERATOR KODE REGISTRASI & UNDANGAN */}
