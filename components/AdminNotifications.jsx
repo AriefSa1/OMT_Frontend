@@ -6,6 +6,7 @@ import InfoTooltip from './InfoTooltip';
 import {
   fetchAdminUsers, fetchNotificationChannels, fetchNotificationConfig,
   updateNotificationConfig, sendNotification, sendTestNotification, fetchNotificationLogs,
+  handleFileUpload as uploadNotificationFile
 } from '../lib/api';
 
 const CHANNEL_META = {
@@ -48,14 +49,40 @@ export default function AdminNotifications() {
   const [error, setError] = useState('');
   const [sendResults, setSendResults] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(null);
 
   const [cfgForm, setCfgForm] = useState({ discordWebhookUrl: '', telegramChatId: '', isActive: true });
-  const [msgForm, setMsgForm] = useState({ subject: '', message: '', channels: [] });
+  const [msgForm, setMsgForm] = useState({ subject: '', message: '', channels: [], fileUrl: '', fileName: '' });
 
   const loadLogs = useCallback(async () => {
     const res = await fetchNotificationLogs(30);
     if (res.success) setLogs(res.data.logs || []);
   }, []);
+
+  const onFileChange = async (e) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploadingFile(file.name);
+      setError('');
+      const res = await uploadNotificationFile(file);
+      if (res.success) {
+        setMsgForm((f) => ({ ...f, fileUrl: res.data.fileUrl, fileName: res.data.originalName || file.name }));
+      } else {
+        setError(res.error || 'Gagal upload file.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError(`Gagal upload file: ${err.message}`);
+    } finally {
+      setUploadingFile(null);
+      e.target.value = '';
+    }
+  };
+
+  const clearUploadedFile = () => {
+    setMsgForm((f) => ({ ...f, fileUrl: '', fileName: '' }));
+  };
 
   useEffect(() => {
     (async () => {
@@ -114,10 +141,16 @@ export default function AdminNotifications() {
     setSendResults(null);
     const res = isTest
       ? await sendTestNotification(selectedUserId, msgForm.channels)
-      : await sendNotification({ userId: selectedUserId, subject: msgForm.subject, message: msgForm.message, channels: msgForm.channels });
+      : await sendNotification({
+        userId: selectedUserId,
+        subject: msgForm.subject,
+        message: msgForm.message,
+        channels: msgForm.channels,
+        fileUrl: msgForm.fileUrl || undefined,
+      });
     if (res.data?.results) setSendResults(res.data.results);
     if (!res.success && !res.data?.results) setError(res.error || 'Gagal mengirim.');
-    if (res.success && !isTest) setMsgForm((f) => ({ ...f, subject: '', message: '' }));
+    if (res.success && !isTest) setMsgForm((f) => ({ ...f, subject: '', message: '', fileUrl: '', fileName: '' }));
     await loadLogs();
     setBusy(false);
   };
@@ -210,6 +243,26 @@ export default function AdminNotifications() {
               <span className="text-[11px] font-medium text-slate-500">Pesan</span>
               <textarea value={msgForm.message} onChange={(e) => setMsgForm((f) => ({ ...f, message: e.target.value }))} rows={6} placeholder="Tulis rencana kerja atau tempel ringkasan hasil analisa toko di sini…" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-800 focus:border-rose-500 focus:outline-none" />
             </label>
+            <label className="mt-3 block">
+              <span className="text-[11px] font-medium text-slate-500">File / Media</span>
+              <input
+                type="file"
+                onChange={onFileChange}
+                disabled={busy || Boolean(uploadingFile)}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-rose-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-rose-700 hover:file:bg-rose-100 disabled:opacity-40"
+              />
+              {uploadingFile && <span className="mt-1 block text-[11px] text-slate-500">Mengupload {uploadingFile}…</span>}
+              {msgForm.fileUrl && (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  <a href={msgForm.fileUrl} target="_blank" rel="noreferrer" className="truncate underline">
+                    {msgForm.fileName || msgForm.fileUrl}
+                  </a>
+                  <button type="button" onClick={clearUploadedFile} className="font-semibold text-emerald-800 hover:text-emerald-950">
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </label>
 
             <div className="mt-3">
               <span className="text-[11px] font-medium text-slate-500">Kirim lewat</span>
@@ -220,11 +273,10 @@ export default function AdminNotifications() {
                     type="button"
                     disabled={!c.available}
                     onClick={() => toggleChannel(c.id)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      msgForm.channels.includes(c.id)
-                        ? 'border-rose-300 bg-rose-50 text-rose-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    } disabled:cursor-not-allowed disabled:opacity-40`}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${msgForm.channels.includes(c.id)
+                      ? 'border-rose-300 bg-rose-50 text-rose-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      } disabled:cursor-not-allowed disabled:opacity-40`}
                     title={!c.available ? 'Kanal ini belum siap di server' : ''}
                   >
                     {CHANNEL_META[c.id]?.label || c.id}
