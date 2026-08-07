@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Filter,
   KeyRound,
+  LayoutGrid,
   Lock,
   Plus,
   Power,
@@ -36,7 +37,8 @@ import {
   UserMinus,
   UserPlus,
   Users,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -63,12 +65,66 @@ const ROLES = [
   { id: 'ADMIN', label: 'Admin (Pusat)', color: 'bg-rose-50 text-rose-700 border-rose-200' }
 ];
 
+// Satu sumber kebenaran untuk navigasi tab — segmented control dirender dari sini,
+// jadi menambah/menghapus bagian cukup mengubah daftar ini (bukan menyalin markup tombol).
+// `countKey` (opsional) memilih angka lencana yang ditampilkan di sebelah label.
+const TABS = [
+  { id: 'overview', label: 'Ringkasan', icon: LayoutGrid },
+  { id: 'users', label: 'Pengguna', icon: Users, countKey: 'users' },
+  { id: 'stores', label: 'Toko', icon: Store, countKey: 'stores' },
+  { id: 'analytics', label: 'Statistik', icon: BarChart3 },
+  { id: 'weekly', label: 'Performa Mingguan', icon: TrendingDown },
+  { id: 'notifications', label: 'Notifikasi', icon: Bell },
+  { id: 'codes', label: 'Kode Undangan', icon: KeyRound, countKey: 'codes' },
+  { id: 'access', label: 'Hak Akses', icon: ShieldCheck },
+  { id: 'audit', label: 'Log Audit', icon: Activity }
+];
+
+// Kartu statistik ringkas untuk strip KPI di tab Ringkasan.
+function StatTile({ label, value, sub, icon: Icon, tone = 'rose' }) {
+  const tones = {
+    rose: 'bg-rose-50 text-rose-600',
+    blue: 'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    sky: 'bg-sky-50 text-sky-600',
+    amber: 'bg-amber-50 text-amber-600'
+  };
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+        {Icon && (
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${tones[tone] || tones.rose}`}>
+            <Icon className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+      <div className="mt-2.5 text-xl font-bold text-slate-900">{value}</div>
+      {sub && <div className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">{sub}</div>}
+    </div>
+  );
+}
+
+// Pembungkus panel untuk grid bento di tab Ringkasan.
+function BentoCard({ title, icon: Icon, action, children, className = '' }) {
+  return (
+    <section className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+        {Icon && <Icon className="h-4 w-4 text-slate-400" />}
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        {action && <div className="ml-auto">{action}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function AdminPage() {
   const { user: currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
 
   // Navigation & Tabs
-  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'stores' | 'codes' | 'access' | 'audit'
+  const [activeTab, setActiveTab] = useState('overview'); // lihat konstanta TABS untuk daftar lengkap
 
   // Data states
   const [loading, setLoading] = useState(true);
@@ -471,242 +527,294 @@ export default function AdminPage() {
         }
       />
 
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Card 1: Total Users */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Total Pengguna
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {systemStats?.counts?.totalUsers || usersData.total || 0}
-            </span>
-            <span className="text-xs text-slate-500">akun terdaftar</span>
-          </div>
-          <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-            <span className="inline-flex items-center gap-1 font-medium text-rose-700">
-              <Shield className="h-3 w-3" />
-              {systemStats?.counts?.adminUsers || usersData.counts?.ADMIN || 0} Admin
-            </span>
-            <span>&bull;</span>
-            <span className="font-medium text-blue-700">
-              {usersData.counts?.USER || (usersData.total - (usersData.counts?.ADMIN || 0)) || 0} User
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Total Registered Stores */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Semua Toko Pengguna
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <Store className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {storesData.total || storesData.stores?.length || 0}
-            </span>
-            <span className="text-xs text-slate-500">toko terdaftar</span>
-          </div>
-          <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-            <span className="text-emerald-700 font-medium">
-              {storesData.stores?.filter(s => s.isActive).length || 0} Toko Aktif
-            </span>
-            <span>&bull;</span>
-            <span className="text-slate-400">
-              {storesData.stores?.filter(s => !s.isActive).length || 0} Nonaktif
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: Active Codes */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Kode Registrasi Aktif
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-              <KeyRound className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {codesData.summary?.active ?? (systemStats?.counts?.activeCodes || 0)}
-            </span>
-            <span className="text-xs text-slate-500">siap digunakan</span>
-          </div>
-          <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-            <span>Total {codesData.summary?.total || codesData.codes?.length || 0} dibuat</span>
-            <span>&bull;</span>
-            <span className="text-slate-400">{codesData.summary?.exhausted || 0} habis</span>
-          </div>
-        </div>
-
-        {/* Card 4: Security & Database */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Kesehatan Database
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-              <Database className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-bold text-slate-900">PostgreSQL (Neon)</span>
-          </div>
-          <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-            <span>Latensi kueri</span>
-            <span className="font-mono font-medium text-slate-700">
-              {systemStats?.dbLatencyMs !== undefined ? `${systemStats.dbLatencyMs} ms` : 'Terkoneksi'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 5: Audit Logs */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Aktivitas Audit
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-              <Activity className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {systemStats?.counts?.auditLogs || auditLogs.length}
-            </span>
-            <span className="text-xs text-slate-500">peristiwa</span>
-          </div>
-          <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-            <span>Uptime server</span>
-            <span className="font-mono font-medium text-slate-700">
-              {systemStats?.uptimeSeconds ? `${Math.floor(systemStats.uptimeSeconds / 60)} m` : 'Aktif'}
-            </span>
-          </div>
-        </div>
+      {/* Navigasi segmented (Layout 2) — dirender dari konstanta TABS */}
+      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1.5 shadow-sm">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const count =
+            tab.countKey === 'users'
+              ? usersData.total || 0
+              : tab.countKey === 'stores'
+                ? storesData.total || storesData.stores?.length || 0
+                : tab.countKey === 'codes'
+                  ? codesData.codes?.length || 0
+                  : null;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                isActive
+                  ? 'bg-white text-rose-700 shadow-sm ring-1 ring-slate-200'
+                  : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{tab.label}</span>
+              {count !== null && (
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                    isActive ? 'bg-rose-50 text-rose-700' : 'bg-slate-200/70 text-slate-600'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="border-b border-slate-200">
-        <nav className="flex space-x-2 sm:space-x-8" aria-label="Tabs Admin">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'users'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            <span>Manajemen Pengguna</span>
-            <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {usersData.total || 0}
-            </span>
-          </button>
+      {/* ========================================================================= */}
+      {/* TAB: RINGKASAN (OVERVIEW BENTO) */}
+      {/* ========================================================================= */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
+          {/* Strip KPI ringkas */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <StatTile
+              label="Total Pengguna"
+              tone="rose"
+              icon={Users}
+              value={systemStats?.counts?.totalUsers || usersData.total || 0}
+              sub={
+                <>
+                  <span className="font-medium text-rose-700">
+                    {systemStats?.counts?.adminUsers || usersData.counts?.ADMIN || 0} Admin
+                  </span>{' '}
+                  · {usersData.counts?.USER || (usersData.total || 0) - (usersData.counts?.ADMIN || 0) || 0} User
+                </>
+              }
+            />
+            <StatTile
+              label="Semua Toko"
+              tone="blue"
+              icon={Store}
+              value={storesData.total || storesData.stores?.length || 0}
+              sub={
+                <>
+                  <span className="text-emerald-700">
+                    {storesData.stores?.filter((s) => s.isActive).length || 0} aktif
+                  </span>{' '}
+                  · {storesData.stores?.filter((s) => !s.isActive).length || 0} nonaktif
+                </>
+              }
+            />
+            <StatTile
+              label="Kode Aktif"
+              tone="emerald"
+              icon={KeyRound}
+              value={codesData.summary?.active ?? (systemStats?.counts?.activeCodes || 0)}
+              sub={`Total ${codesData.summary?.total || codesData.codes?.length || 0} dibuat`}
+            />
+            <StatTile
+              label="Database"
+              tone="sky"
+              icon={Database}
+              value={
+                <span className="inline-flex items-center gap-1.5 text-base">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" /> Neon
+                </span>
+              }
+              sub={systemStats?.dbLatencyMs !== undefined ? `Latensi ${systemStats.dbLatencyMs} ms` : 'Terkoneksi'}
+            />
+            <StatTile
+              label="Aktivitas Audit"
+              tone="amber"
+              icon={Activity}
+              value={systemStats?.counts?.auditLogs || auditLogs.length}
+              sub={systemStats?.uptimeSeconds ? `Uptime ${Math.floor(systemStats.uptimeSeconds / 60)} m` : 'Aktif'}
+            />
+          </div>
 
-          <button
-            onClick={() => setActiveTab('stores')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'stores'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <Store className="h-4 w-4" />
-            <span>Semua Toko Pengguna</span>
-            <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {storesData.total || storesData.stores?.length || 0}
-            </span>
-          </button>
+          {/* Grid bento: kiri (2 kolom) aktivitas + toko, kanan (1 kolom) kesehatan + aksi */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
+              <BentoCard
+                title="Aktivitas terbaru"
+                icon={Activity}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('audit')}
+                    className="text-[11px] font-semibold text-rose-700 hover:text-rose-800"
+                  >
+                    Lihat semua
+                  </button>
+                }
+              >
+                {auditLogs.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-xs text-slate-500">Belum ada aktivitas terekam.</p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {auditLogs.slice(0, 5).map((log) => {
+                      let badge = 'bg-slate-100 text-slate-700';
+                      if (log.action.includes('DELETE')) badge = 'bg-rose-50 text-rose-700';
+                      else if (log.action.includes('ROLE') || log.action.includes('RESET'))
+                        badge = 'bg-amber-50 text-amber-700';
+                      else if (
+                        log.action.includes('CREATE') ||
+                        log.action.includes('GENERATE') ||
+                        log.action.includes('REGISTER')
+                      )
+                        badge = 'bg-emerald-50 text-emerald-700';
+                      return (
+                        <li key={log.id} className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge}`}>
+                            {log.action}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-slate-600">
+                            <span className="font-medium text-slate-800">{log.actorName || 'Sistem'}</span>
+                            {log.targetName ? <> → {log.targetName}</> : null}
+                          </span>
+                          <span className="shrink-0 text-[10px] text-slate-400">
+                            {new Date(log.createdAt).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </BentoCard>
 
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'analytics'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            <span>Statistik &amp; Analitik</span>
-          </button>
+              <BentoCard
+                title="Toko teratas berdasarkan produk"
+                icon={Store}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('stores')}
+                    className="text-[11px] font-semibold text-rose-700 hover:text-rose-800"
+                  >
+                    Kelola toko
+                  </button>
+                }
+              >
+                {(storesData.stores || []).length === 0 ? (
+                  <p className="px-4 py-8 text-center text-xs text-slate-500">Belum ada toko terdaftar.</p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {[...(storesData.stores || [])]
+                      .sort(
+                        (a, b) =>
+                          (b._count?.products ?? b.totalProducts ?? 0) - (a._count?.products ?? a.totalProducts ?? 0)
+                      )
+                      .slice(0, 5)
+                      .map((s) => (
+                        <li key={s.id || s.storeId} className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 text-orange-600">
+                            <Store className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold text-slate-800">
+                              {s.storeName || 'Shopee Store'}
+                            </span>
+                            <span className="block truncate text-[10px] text-slate-400">
+                              {s.owner?.name || 'Legacy'}
+                            </span>
+                          </span>
+                          {s.isActive ? (
+                            <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                              Nonaktif
+                            </span>
+                          )}
+                          <span className="w-12 shrink-0 text-right font-bold text-slate-800">
+                            {s._count?.products ?? s.totalProducts ?? 0}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </BentoCard>
+            </div>
 
-          <button
-            onClick={() => setActiveTab('weekly')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'weekly'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <TrendingDown className="h-4 w-4" />
-            <span>Performa Mingguan</span>
-          </button>
+            <div className="space-y-4">
+              <BentoCard title="Kesehatan sistem" icon={Database}>
+                <dl className="space-y-2.5 p-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Database (Neon)</dt>
+                    <dd className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      {systemStats?.dbLatencyMs !== undefined ? `${systemStats.dbLatencyMs} ms` : 'OK'}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Uptime server</dt>
+                    <dd className="font-mono font-medium text-slate-700">
+                      {systemStats?.uptimeSeconds ? `${Math.floor(systemStats.uptimeSeconds / 60)} m` : 'Aktif'}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Runtime</dt>
+                    <dd className="font-mono font-medium text-slate-700">Node {systemStats?.nodeVersion || 'v20+'}</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Total peristiwa audit</dt>
+                    <dd className="font-semibold text-slate-800">{systemStats?.counts?.auditLogs || auditLogs.length}</dd>
+                  </div>
+                </dl>
+              </BentoCard>
 
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'notifications'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <Bell className="h-4 w-4" />
-            <span>Notifikasi</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('codes')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'codes'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <KeyRound className="h-4 w-4" />
-            <span>Generator Kode Undangan</span>
-            <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {codesData.codes?.length || 0}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('access')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'access'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            <span>Hak Akses & Keamanan</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
-              activeTab === 'audit'
-                ? 'border-rose-600 text-rose-700 font-semibold'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-            }`}
-          >
-            <Activity className="h-4 w-4" />
-            <span>Log Audit</span>
-          </button>
-        </nav>
-      </div>
+              <BentoCard title="Aksi cepat" icon={Zap}>
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  <button
+                    type="button"
+                    onClick={() => setModalUserCreate(true)}
+                    className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 p-3 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50/40"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                      <UserPlus className="h-4 w-4" />
+                    </span>
+                    Tambah User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalCodeCreate(true)}
+                    className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 p-3 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50/40"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                      <KeyRound className="h-4 w-4" />
+                    </span>
+                    Buat Kode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => loadAdminData(true)}
+                    className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 p-3 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50/40"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                      <RefreshCw className="h-4 w-4" />
+                    </span>
+                    Muat Ulang
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('audit')}
+                    className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 p-3 text-left text-[11px] font-semibold text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50/40"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                      <Activity className="h-4 w-4" />
+                    </span>
+                    Log Audit
+                  </button>
+                </div>
+              </BentoCard>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: MANAJEMEN PENGGUNA */}

@@ -8,6 +8,13 @@ const STATUS_STYLES = {
   'Tidak Tersedia': 'border-slate-200 bg-white text-slate-500',
 };
 
+// Teks yang ditampilkan untuk sebuah status. Kunci gaya tetap ('Segar'/'Tertunda') agar
+// semua pemanggil dan meta dari backend tak perlu berubah; hanya kata yang tampil berganti.
+const STATUS_DISPLAY = {
+  Segar: 'Berjalan',
+  Tertunda: 'Dijeda',
+};
+
 export function formatDataTime(value) {
   if (!value) return 'Belum tersedia';
   const date = new Date(value);
@@ -30,9 +37,10 @@ export function formatSource(value) {
 
 export default function StatusBadge({ status, compact = false }) {
   const label = status || 'Tidak Tersedia';
+  const display = STATUS_DISPLAY[label] || label;
   return (
     <span className={`inline-flex items-center whitespace-nowrap border px-2 py-1 text-[11px] font-semibold ${compact ? 'rounded-md' : 'rounded-full'} ${STATUS_STYLES[label] || STATUS_STYLES['Tidak Tersedia']}`}>
-      {label}
+      {display}
     </span>
   );
 }

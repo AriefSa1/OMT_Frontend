@@ -20,6 +20,7 @@ import {
   XCircle,
   TrendingUp,
   Layers,
+  ChevronDown,
 } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
@@ -115,6 +116,8 @@ export default function WarehousePage() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [teamOverview, setTeamOverview] = useState(null);
   const [teamOverviewLoading, setTeamOverviewLoading] = useState(true);
+  // Ikhtisar tim bisa dilipat agar area atas ringkas saat sedang fokus ke tabel inventori.
+  const [teamOpen, setTeamOpen] = useState(false);
 
   const loadInventory = useCallback(async () => {
     setLoading(true);
@@ -251,7 +254,28 @@ export default function WarehousePage() {
         />
       </div>
 
-      <WarehouseTeamOverview overview={teamOverview} loading={teamOverviewLoading} />
+      {/* Ikhtisar tim: panel yang bisa dilipat. Tertutup secara default agar fokus ke KPI
+          & tabel; dibuka saat butuh rincian per tim. */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setTeamOpen((open) => !open)}
+          aria-expanded={teamOpen}
+          className="surface flex w-full items-center gap-2.5 px-5 py-3 text-left transition-colors hover:bg-slate-50"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <Users className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-semibold text-slate-900">Ikhtisar Tim</span>
+          <span className="hidden text-xs text-slate-500 sm:inline">Distribusi SKU &amp; performa inventori per tim</span>
+          <ChevronDown className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${teamOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {teamOpen && (
+          <div className="mt-3">
+            <WarehouseTeamOverview overview={teamOverview} loading={teamOverviewLoading} />
+          </div>
+        )}
+      </div>
 
       {/* Main Section */}
       <section className="surface overflow-hidden rounded-3xl border border-slate-200/80 shadow-sm bg-white">

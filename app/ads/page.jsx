@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target, Clock } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
@@ -13,6 +14,13 @@ import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
 import { useSnapshotRefresh, useTrickleProgress } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
+
+// Dimuat dinamis (tanpa SSR) agar recharts tidak membebani first-load halaman iklan,
+// mengikuti pola SalesChart di Beranda.
+const AdsTrendChart = dynamic(() => import('../../components/AdsTrendChart'), {
+  ssr: false,
+  loading: () => <div className="skeleton h-full min-h-[320px] rounded-md" />,
+});
 
 const PERIOD_OPTIONS = [
   { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
@@ -28,6 +36,8 @@ export default function AdsPage() {
   const [period, setPeriod] = useState('real_time');
   const [campaignSort, setCampaignSort] = useState('spend');
   const [campaignDirection, setCampaignDirection] = useState('desc');
+  // Filter status kampanye: 'all' | 'ongoing' (Berjalan) | 'paused' (Dijeda = selain berjalan).
+  const [campaignStateFilter, setCampaignStateFilter] = useState('all');
   const syncProgress = useTrickleProgress();
   const { selectedStoreId } = useStore();
 
@@ -68,8 +78,21 @@ export default function AdsPage() {
 
   const isRealTime = period === 'real_time';
 
+  // "Berjalan" = kampanye ongoing; "Dijeda" = selain ongoing (paused/ended/closed) —
+  // sesuai lencana status pada tabel.
+  const CAMPAIGN_STATE_FILTERS = [
+    { id: 'all', label: 'Semua' },
+    { id: 'ongoing', label: 'Berjalan' },
+    { id: 'paused', label: 'Dijeda' },
+  ];
+  const filteredCampaigns = (ads?.topCampaigns || []).filter((c) => {
+    if (campaignStateFilter === 'all') return true;
+    if (campaignStateFilter === 'ongoing') return c.state === 'ongoing';
+    return c.state !== 'ongoing';
+  });
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Iklan"
         description="Kinerja kampanye Product Ads dari Shopee Seller Center secara langsung dan snapshot historis."
@@ -157,7 +180,15 @@ export default function AdsPage() {
         <MetricCard title="ROAS" value={ads?.roas === null || ads?.roas === undefined ? '0,00' : `${Number(ads.roas).toFixed(2).replace('.', ',')}`} icon={Target} trend={ads?.trend?.roas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
       </div>
 
-      <AdsAIOptimizerCard adsData={ads} />
+      {/* Bento: grafik tren iklan menonjol (2 kolom) di samping AI Optimizer (1 kolom). */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <AdsTrendChart data={ads?.history || []} />
+        </div>
+        <div className="xl:col-span-1">
+          <AdsAIOptimizerCard adsData={ads} />
+        </div>
+      </div>
 
       <section className="surface overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -165,7 +196,7 @@ export default function AdsPage() {
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-slate-900">Kampanye Produk</h2>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                {ads?.topCampaigns?.length || 0} Kampanye
+                {filteredCampaigns.length} Kampanye
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">
@@ -173,6 +204,25 @@ export default function AdsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Filter status kampanye */}
+            <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+              {CAMPAIGN_STATE_FILTERS.map((opt) => {
+                const active = campaignStateFilter === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setCampaignStateFilter(opt.id)}
+                    aria-pressed={active}
+                    className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      active ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
             <label className="sr-only" htmlFor="campaign-sort">
               Urutkan kampanye
             </label>
@@ -206,10 +256,14 @@ export default function AdsPage() {
           </div>
         </div>
 
-        {!loading && !ads?.topCampaigns?.length ? (
+        {!loading && !filteredCampaigns.length ? (
           <EmptyState
             title="Data kampanye belum tersedia"
-            message={ads?.meta?.message || 'Jalankan Sync iklan setelah sesi Shopee terhubung.'}
+            message={
+              ads?.topCampaigns?.length
+                ? `Tidak ada kampanye berstatus "${CAMPAIGN_STATE_FILTERS.find((o) => o.id === campaignStateFilter)?.label}".`
+                : ads?.meta?.message || 'Jalankan Sync iklan setelah sesi Shopee terhubung.'
+            }
           />
         ) : (
           <div className="table-scroll">
@@ -234,7 +288,7 @@ export default function AdsPage() {
                       </td>
                     </tr>
                   ))}
-                {ads?.topCampaigns?.map((campaign) => (
+                {filteredCampaigns.map((campaign) => (
                   <tr key={campaign.id || campaign.campaignId} className="hover:bg-slate-50">
                     <td className="px-5 py-3">
                       <p className="max-w-72 truncate font-semibold text-slate-800">{campaign.name}</p>

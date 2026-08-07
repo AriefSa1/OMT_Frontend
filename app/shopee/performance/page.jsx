@@ -272,31 +272,6 @@ export default function ShopeeProductPerformancePage() {
         </div>
       </PageHeader>
 
-      {/* Period Filter Tabs */}
-      <section className="surface p-2 sm:p-3">
-        <div className="flex flex-wrap gap-2">
-          {PERIOD_OPTIONS.map((item) => {
-            const active = period === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => { setPeriod(item.id); setPage(1); }}
-                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
-                  active
-                    ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                {Icon && <Icon className={`h-3.5 w-3.5 ${active ? 'text-amber-300' : 'text-amber-500'}`} />}
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* KPI Overview Summary */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="surface p-4 border-l-4 border-l-rose-500 relative overflow-hidden">
@@ -354,17 +329,40 @@ export default function ShopeeProductPerformancePage() {
         </div>
       </section>
 
-      {/* Filter & Controls Bar */}
-      <section className="surface p-4">
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_160px_130px]">
-          <label className="relative block">
+      {/* Toolbar gabungan: periode + pencarian + filter jadi satu baris yang LENGKET
+          di bawah header saat menggulir tabel panjang (top-16 = tinggi navbar). */}
+      <section className="surface sticky top-16 z-10 p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {PERIOD_OPTIONS.map((item) => {
+              const active = period === item.id;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { setPeriod(item.id); setPage(1); }}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                  }`}
+                >
+                  {Icon && <Icon className={`h-3.5 w-3.5 ${active ? 'text-amber-300' : 'text-amber-500'}`} />}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="relative block min-w-[180px] flex-1">
             <span className="sr-only">Cari nama produk atau SKU</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari berdasarkan nama produk atau SKU..."
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+              placeholder="Cari nama produk atau SKU..."
+              className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
             />
           </label>
 
@@ -373,7 +371,7 @@ export default function ShopeeProductPerformancePage() {
             <select
               value={orderBy}
               onChange={(e) => { setOrderBy(e.target.value); setPage(1); }}
-              className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
+              className="ui-select h-9 rounded-md px-3 text-xs text-slate-700"
             >
               {ORDER_BY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -388,11 +386,11 @@ export default function ShopeeProductPerformancePage() {
             <select
               value={orderType}
               onChange={(e) => { setOrderType(e.target.value); setPage(1); }}
-              className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
+              className="ui-select h-9 rounded-md px-3 text-xs text-slate-700"
             >
-              <option value="confirmed">Pesanan Terkonfirmasi</option>
-              <option value="placed">Pesanan Dibuat</option>
-              <option value="paid">Pesanan Dibayar</option>
+              <option value="confirmed">Terkonfirmasi</option>
+              <option value="placed">Dibuat</option>
+              <option value="paid">Dibayar</option>
             </select>
           </label>
 
@@ -401,11 +399,11 @@ export default function ShopeeProductPerformancePage() {
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"
+              className="ui-select h-9 rounded-md px-3 text-xs text-slate-700"
             >
-              <option value={10}>10 per halaman</option>
-              <option value={20}>20 per halaman</option>
-              <option value={50}>50 per halaman</option>
+              <option value={10}>10 / hlm</option>
+              <option value={20}>20 / hlm</option>
+              <option value={50}>50 / hlm</option>
             </select>
           </label>
         </div>

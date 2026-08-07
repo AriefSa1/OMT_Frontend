@@ -66,7 +66,7 @@ export default function DashboardOverview() {
   const latestDay = data?.salesTrend?.length ? data.salesTrend[data.salesTrend.length - 1].day : null;
   const trend = data?.kpiTrend;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Beranda"
         description="Ringkasan operasional berbasis snapshot lokal. Gunakan Sync pada header untuk memperbarui data dari sumber terhubung."
@@ -85,7 +85,7 @@ export default function DashboardOverview() {
 
       {loading ? <MetricLoading /> : (
         <>
-          <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">Performa Iklan</h2>
+          <h2 className="text-base font-semibold text-slate-800 mb-2">Performa Iklan</h2>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
@@ -144,7 +144,7 @@ export default function DashboardOverview() {
             <MetricCard title="ROAS" value={data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? '0,00' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`} icon={Target} trend={trend?.adsRoas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
           </div>
 
-          <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">Performa Toko & Operasional</h2>
+          <h2 className="text-base font-semibold text-slate-800 mt-5 mb-2">Performa Toko & Operasional</h2>
           <div className="fade-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <MetricCard title="GMV Toko (Keseluruhan)" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} tip="Gross Merchandise Value — total nilai pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${data?.kpiTrend?.currentDate || 'periode ini'}` : data?.history?.message} />
             <MetricCard title="Pesanan Toko (Keseluruhan)" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} tip="Jumlah pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
@@ -167,7 +167,9 @@ export default function DashboardOverview() {
 
       <DailyBriefingCard />
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      {/* Bento dashboard: grafik penjualan tampil menonjol lalu semua panel mengisi satu
+          grid rapat, bukan beberapa baris berjarak lebar dengan ruang kosong. */}
+      <div className="grid gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           {historyAvailable
             ? <SalesChart data={data?.salesTrend || []} note={data?.lastSyncedAt ? `Sync terakhir: ${formatDataTime(data.lastSyncedAt)}` : undefined} />
@@ -180,9 +182,7 @@ export default function DashboardOverview() {
             {logs.length ? logs.slice(0, 6).map((log) => <div key={log.id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-700">{log.jobType.replaceAll('_', ' ')}</p><StatusBadge status={log.status === 'SUCCESS' ? 'Segar' : log.status === 'DEGRADED' ? 'Tertunda' : 'Gagal'} compact /></div><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{log.message}</p><p className="mt-1 text-[11px] text-slate-400">{formatDataTime(log.timestamp)}</p></div>) : <p className="text-sm text-slate-500">Belum ada riwayat Sync.</p>}
           </div>
         </section>
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
         <section className="surface overflow-hidden xl:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Produk katalog teratas</h2><p className="mt-1 text-xs text-slate-500">Urut berdasarkan penjualan snapshot katalog.{data?.topProductsMeta?.message ? ` ${data.topProductsMeta.message}` : ''}</p></div><Link href="/shopee" className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700">Buka katalog <ArrowRight className="h-3.5 w-3.5" /></Link></div>
           {/* The table is what overflows, so the scroll container has to be the table's
