@@ -190,7 +190,7 @@ export default function AdminPage() {
       ]);
 
       if (usersRes?.success) setUsersData(usersRes.data);
-      if (storesRes?.success) setStoresData({ stores: storesRes.stores || [], total: storesRes.total || (storesRes.stores || []).length });
+      if (storesRes?.success) setStoresData({ stores: storesRes.data?.stores || [], total: storesRes.data?.totalStores || (storesRes.data?.stores || []).length });
       if (codesRes?.success) setCodesData(codesRes.data);
       if (logsRes?.success) setAuditLogs(logsRes.data.logs || []);
       if (statsRes?.success) setSystemStats(statsRes.data);
