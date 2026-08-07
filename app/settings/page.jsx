@@ -19,7 +19,8 @@ const EMPTY_FORM = {
   warehouseUsername: '',
   warehousePassword: '',
   warehouseLoginFrom: 'selling',
-  geminiApiKey: '',
+  geminiApiKey: null,
+  openrouterApiKey: null, // OpenRouter fallback for when Gemini quota is exhausted
 };
 
 export default function SettingsPage() {
@@ -70,10 +71,12 @@ export default function SettingsPage() {
     const payload = { ...form };
     if (!payload.warehousePassword) delete payload.warehousePassword;
     if (!payload.geminiApiKey) delete payload.geminiApiKey;
+    if (!payload.openrouterApiKey) delete payload.openrouterApiKey;
     delete payload.cookieConfigured;
     delete payload.warehouseLoginConfigured;
     delete payload.warehouseCredentialsConfigured;
     delete payload.geminiApiKeyConfigured;
+    delete payload.openRouterApiKeyConfigured;
     const response = await saveSettings(payload);
     setMessage(response.success ? 'Pengaturan berhasil disimpan.' : response.error || 'Pengaturan tidak dapat disimpan.');
     await loadData();
@@ -397,6 +400,28 @@ export default function SettingsPage() {
               <span className="mt-1 block text-[11px] leading-5 text-slate-500">
                 Tanpa kunci ini seluruh fitur AI tidak aktif dan panelnya menampilkan status
                 &quot;belum dikonfigurasi&quot;.
+              </span>
+            </label>
+            <label className="block">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-700">Kunci API OpenRouter (Fallback)</span>
+                <span className="text-[11px] text-slate-500">
+                  Tersimpan: {settings?.openRouterApiKeyConfigured ? 'Ya' : 'Belum'}
+                </span>
+              </span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={form.openrouterApiKey || ''}
+                onChange={update('openrouterApiKey')}
+                placeholder={settings?.openRouterApiKeyConfigured ? 'Terisi — kosongkan untuk mempertahankan' : 'Tempel OpenRouter API key (gratis $10/mo)'}
+                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800"
+              />
+              <span className="mt-1 block text-[11px] leading-5 text-slate-500">
+                Fallback gratis ketika kuota Gemini habis. Daftar gratis di{' '}
+                <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="underline">
+                  openrouter.ai
+                </a> {' '} dan masukkan API key di sini.
               </span>
             </label>
             <label className="block">
