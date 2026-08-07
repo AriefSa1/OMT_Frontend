@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpDown, BarChart3, CircleDollarSign, MousePointerClick, RefreshCw, Target, Clock, Zap } from 'lucide-react';
+import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target, Clock } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import ProgressBar from '../../components/ProgressBar';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
 import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
-import { useSnapshotRefresh } from '../../lib/hooks';
+import { useSnapshotRefresh, useTrickleProgress } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
 
@@ -27,6 +28,7 @@ export default function AdsPage() {
   const [period, setPeriod] = useState('real_time');
   const [campaignSort, setCampaignSort] = useState('spend');
   const [campaignDirection, setCampaignDirection] = useState('desc');
+  const syncProgress = useTrickleProgress();
   const { selectedStoreId } = useStore();
 
   const loadAds = useCallback(async (selectedPeriod = period) => {
@@ -54,9 +56,14 @@ export default function AdsPage() {
 
   const sync = async () => {
     setSyncing(true);
-    await triggerFullSync(selectedStoreId);
-    await loadAds(period);
-    setSyncing(false);
+    syncProgress.start();
+    try {
+      await triggerFullSync(selectedStoreId);
+      await loadAds(period);
+    } finally {
+      syncProgress.done();
+      setSyncing(false);
+    }
   };
 
   const isRealTime = period === 'real_time';
@@ -90,6 +97,10 @@ export default function AdsPage() {
           <DataSourceNote meta={ads?.meta} />
         </div>
       </PageHeader>
+
+      {syncProgress.active && (
+        <ProgressBar value={syncProgress.value} label="Menyinkronkan data iklan…" showValue height={5} />
+      )}
 
       {/* Period Selection Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
@@ -135,49 +146,15 @@ export default function AdsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Biaya Iklan"
-          value={formatIDR(ads?.totalSpend)}
-          icon={CircleDollarSign}
-          tone="rose"
-          subtitle={
-            period === 'real_time'
-              ? 'Biaya berjalan hari ini'
-              : period === 'yesterday'
-              ? 'Total biaya iklan kemarin'
-              : `Total biaya ${period === 'past7days' ? '7 hari' : '30 hari'} terakhir`
-          }
-        />
-        <MetricCard
-          title="Penjualan dari Iklan"
-          value={formatIDR(ads?.totalSalesGenerated)}
-          icon={BarChart3}
-          tone="slate"
-          subtitle={
-            period === 'real_time'
-              ? 'GMV iklan hari ini'
-              : period === 'yesterday'
-              ? 'GMV iklan kemarin'
-              : `GMV ${period === 'past7days' ? '7 hari' : '30 hari'} terakhir`
-          }
-        />
-        <MetricCard
-          title="ROAS"
-          value={ads?.roas === null || ads?.roas === undefined ? 'Belum tersedia' : `${Number(ads.roas).toFixed(2)}x`}
-          icon={Target}
-          tone="emerald"
-          tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan. Di atas 1x berarti iklan menghasilkan lebih dari biayanya."
-          subtitle="Penjualan dibagi biaya iklan"
-        />
-        <MetricCard
-          title="CTR"
-          value={formatPercent(ads?.ctr)}
-          icon={MousePointerClick}
-          tone="slate"
-          tip="Click-Through Rate = klik ÷ impresi. Mengukur seberapa menarik iklan membuat orang mengklik."
-          subtitle={`${formatNumber(ads?.clicks)} klik dari ${formatNumber(ads?.impressions)} impresi`}
-        />
+      <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <MetricCard title="Iklan Dilihat" value={formatNumber(ads?.impressions)} icon={Eye} trend={ads?.trend?.impressions} tone="slate" tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
+        <MetricCard title="Jumlah Klik" value={formatNumber(ads?.clicks)} icon={MousePointerClick} trend={ads?.trend?.clicks} tone="slate" tip="Jumlah klik pada iklan." />
+        <MetricCard title="Persentase Klik" value={ads?.ctr !== null && ads?.ctr !== undefined ? formatPercent(ads?.ctr) : '-'} icon={MousePointerClick} trend={ads?.trend?.ctr} tone="slate" tip="Persentase klik pada iklan (CTR)." />
+        <MetricCard title="Pesanan" value={formatNumber(ads?.orders)} icon={ShoppingBag} trend={ads?.trend?.orders} tone="slate" tip="Jumlah pesanan yang dihasilkan dari iklan." />
+        <MetricCard title="Produk Terjual" value={formatNumber(ads?.itemSold)} icon={ShoppingBag} trend={ads?.trend?.itemSold} tone="slate" tip="Jumlah produk yang terjual dari iklan." />
+        <MetricCard title="Penjualan dari Iklan" value={formatIDR(ads?.totalSalesGenerated)} icon={BarChart3} trend={ads?.trend?.sales} tone="slate" tip="Total nilai penjualan dari iklan." />
+        <MetricCard title="Biaya Iklan" value={formatIDR(ads?.totalSpend)} icon={BarChart3} trend={ads?.trend?.spend} tone="slate" tip="Total biaya yang dihabiskan untuk iklan." />
+        <MetricCard title="ROAS" value={ads?.roas === null || ads?.roas === undefined ? '0,00' : `${Number(ads.roas).toFixed(2).replace('.', ',')}`} icon={Target} trend={ads?.trend?.roas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
       </div>
 
       <AdsAIOptimizerCard adsData={ads} />

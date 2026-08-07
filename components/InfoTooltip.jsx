@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Info } from 'lucide-react';
+import { useClickOutside } from '../lib/hooks';
 
 /**
  * Ikon info kecil dengan penjelasan singkat — dipakai di sebelah label metrik supaya
@@ -11,14 +12,7 @@ import { Info } from 'lucide-react';
  */
 export default function InfoTooltip({ label, children, side = 'top', className = '' }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
+  const ref = useClickOutside(() => setOpen(false), open);
 
   const pos = side === 'top'
     ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2'

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, Clock, RefreshCw } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
@@ -15,6 +15,13 @@ import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../l
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 import { useStore } from '../context/StoreContext';
+
+const PERIOD_OPTIONS = [
+  { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
+  { id: 'yesterday', label: 'Kemarin' },
+  { id: 'past7days', label: '7 Hari Terakhir' },
+  { id: 'past30days', label: '30 Hari Terakhir' },
+];
 
 const SalesChart = dynamic(() => import('../components/SalesChart'), {
   ssr: false,
@@ -35,12 +42,13 @@ export default function DashboardOverview() {
   const [logs, setLogs] = useState([]);
   const [traffic, setTraffic] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('real_time');
   const { selectedStoreId } = useStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
     const [overview, logData, trafficData] = await Promise.all([
-      fetchDashboardOverview(selectedStoreId),
+      fetchDashboardOverview(selectedStoreId, period),
       fetchSyncLogs(),
       fetchTrafficSources(7, selectedStoreId),
     ]);
@@ -48,7 +56,7 @@ export default function DashboardOverview() {
     setLogs(logData?.logs || []);
     setTraffic(trafficData);
     setLoading(false);
-  }, [selectedStoreId]);
+  }, [selectedStoreId, period]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);
@@ -62,7 +70,11 @@ export default function DashboardOverview() {
       <PageHeader
         title="Beranda"
         description="Ringkasan operasional berbasis snapshot lokal. Gunakan Sync pada header untuk memperbarui data dari sumber terhubung."
-        actions={<Link href="/settings" className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Pengaturan koneksi</Link>}
+        actions={
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Pengaturan koneksi</Link>
+          </div>
+        }
       >
         <div className="flex flex-wrap gap-3">
           <DataSourceNote meta={data?.dataState?.catalog} />
@@ -71,34 +83,86 @@ export default function DashboardOverview() {
         </div>
       </PageHeader>
 
-      {trend?.previousDate && (
-        <p className="text-xs text-slate-500">
-          Statistik harian dibandingkan terhadap {trend.previousDate}.
-          {trend.currentIsPartial && ' Hari ini masih berjalan, jadi angkanya belum utuh — penurunan pada panah bisa jadi hanya karena harinya belum selesai.'}
-        </p>
-      )}
-
       {loading ? <MetricLoading /> : (
-        <div className="fade-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <MetricCard title="GMV terakhir" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} tip="Gross Merchandise Value — total nilai pesanan terkonfirmasi pada hari terakhir tersimpan. Ini angka satu hari, bukan akumulasi." subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${latestDay || 'hari terakhir tersimpan'}` : data?.history?.message} />
-          <MetricCard title="Pesanan terakhir" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} tip="Jumlah pesanan terkonfirmasi pada hari terakhir tersimpan." subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
-          <MetricCard title="ROAS iklan" value={data?.kpis?.roas === null || data?.kpis?.roas === undefined ? 'Belum tersedia' : `${Number(data.kpis.roas).toFixed(2)}x`} icon={Target} tone="rose" trend={trend?.roas} tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan. 3x berarti tiap Rp1 iklan menghasilkan Rp3 penjualan. Makin tinggi makin efisien." subtitle={`Biaya ${formatIDR(data?.kpis?.adSpend)}`} />
-          <MetricCard title="Impresi iklan" value={formatNumber(data?.kpis?.impressions)} icon={Eye} tone="slate" trend={trend?.impressions} tip="Berapa kali iklan ditayangkan pada snapshot iklan terakhir." subtitle="Tayangan iklan pada snapshot iklan terakhir" />
-          <MetricCard title="Klik iklan" value={formatNumber(data?.kpis?.clicks)} icon={MousePointerClick} tone="slate" trend={trend?.clicks} tip="Jumlah klik pada iklan. CTR = klik ÷ impresi, mengukur seberapa menarik iklannya." subtitle={data?.kpis?.impressions ? `CTR ${formatPercent((Number(data.kpis.clicks) / Number(data.kpis.impressions)) * 100)}` : 'CTR belum dapat dihitung'} />
-          {/* A null count means "not measurable" and must not render as a green all-clear. */}
-          <MetricCard
-            title="Selisih stok"
-            value={formatNumber(data?.kpis?.discrepanciesAlerts)}
-            icon={Boxes}
-            tip="Jumlah SKU yang stok Shopee-nya berbeda dari stok gudang. Nilai kosong berarti belum bisa dihitung — bukan berarti nol selisih."
-            tone={data?.kpis?.discrepanciesAlerts === null || data?.kpis?.discrepanciesAlerts === undefined
-              ? 'slate'
-              : Number(data.kpis.discrepanciesAlerts) ? 'amber' : 'emerald'}
-            subtitle={data?.reconciliationTrust && !data.reconciliationTrust.reliable
-              ? data.reconciliationTrust.message
-              : `${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`}
-          />
-        </div>
+        <>
+          <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">Performa Iklan</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800">Periode Iklan</span>
+                  {loading && <RefreshCw className="h-3 w-3 animate-spin text-rose-500" />}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
+                  {period === 'yesterday' && 'Data performa penutupan hari kemarin'}
+                  {period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
+                  {period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {PERIOD_OPTIONS.map((opt) => {
+                const isActive = period === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={loading && isActive}
+                    onClick={() => setPeriod(opt.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isActive
+                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
+                      } ${loading ? 'opacity-90' : ''}`}
+                  >
+                    {opt.badge && (
+                      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
+                    )}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {trend?.previousDate && (
+            <p className="text-xs text-slate-500">
+              Statistik dibandingkan terhadap {trend.previousDate}.
+              {trend.currentIsPartial && ' Hari ini masih berjalan, jadi angkanya belum utuh — penurunan pada panah bisa jadi hanya karena harinya belum selesai.'}
+            </p>
+          )}
+          <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCard title="Iklan Dilihat" value={formatNumber(data?.kpis?.adsImpressions)} icon={Eye} trend={trend?.adsImpressions} tone="slate" tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
+            <MetricCard title="Jumlah Klik" value={formatNumber(data?.kpis?.adsClicks)} icon={MousePointerClick} trend={trend?.adsClicks} tone="slate" tip="Jumlah klik pada iklan." />
+            <MetricCard title="Persentase Klik" value={data?.kpis?.adsCtr !== null ? formatPercent(data?.kpis?.adsCtr) : '-'} icon={MousePointerClick} trend={trend?.adsCtr} tone="slate" tip="Persentase klik pada iklan (CTR)." />
+            <MetricCard title="Pesanan" value={formatNumber(data?.kpis?.adsOrders)} icon={ShoppingBag} trend={trend?.adsOrders} tone="slate" tip="Jumlah pesanan yang dihasilkan dari iklan." />
+            <MetricCard title="Produk Terjual" value={formatNumber(data?.kpis?.adsItemSold)} icon={ShoppingBag} trend={trend?.adsItemSold} tone="slate" tip="Jumlah produk yang terjual dari iklan." />
+            <MetricCard title="Penjualan dari Iklan" value={formatIDR(data?.kpis?.adsSales)} icon={BarChart3} trend={trend?.adsSales} tone="slate" tip="Total nilai penjualan dari iklan." />
+            <MetricCard title="Biaya Iklan" value={formatIDR(data?.kpis?.adsSpend)} icon={BarChart3} trend={trend?.adsSpend} tone="slate" tip="Total biaya yang dihabiskan untuk iklan." />
+            <MetricCard title="ROAS" value={data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? '0,00' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`} icon={Target} trend={trend?.adsRoas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
+          </div>
+
+          <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">Performa Toko & Operasional</h2>
+          <div className="fade-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricCard title="GMV Toko (Keseluruhan)" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} tip="Gross Merchandise Value — total nilai pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${data?.kpiTrend?.currentDate || 'periode ini'}` : data?.history?.message} />
+            <MetricCard title="Pesanan Toko (Keseluruhan)" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} tip="Jumlah pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
+            {/* A null count means "not measurable" and must not render as a green all-clear. */}
+            <MetricCard
+              title="Selisih stok"
+              value={formatNumber(data?.kpis?.discrepanciesAlerts)}
+              icon={Boxes}
+              tip="Jumlah SKU yang stok Shopee-nya berbeda dari stok gudang. Nilai kosong berarti belum bisa dihitung — bukan berarti nol selisih."
+              tone={data?.kpis?.discrepanciesAlerts === null || data?.kpis?.discrepanciesAlerts === undefined
+                ? 'slate'
+                : Number(data.kpis.discrepanciesAlerts) ? 'amber' : 'emerald'}
+              subtitle={data?.reconciliationTrust && !data.reconciliationTrust.reliable
+                ? data.reconciliationTrust.message
+                : `${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`}
+            />
+          </div>
+        </>
       )}
 
       <DailyBriefingCard />

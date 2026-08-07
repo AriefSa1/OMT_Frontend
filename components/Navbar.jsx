@@ -1,40 +1,43 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, Menu, Plus, RefreshCw, Settings, ShieldCheck, Store, UserRound } from 'lucide-react';
+import { ChevronDown, Menu, Plus, RefreshCw, ShieldCheck, Store, UserRound } from 'lucide-react';
 import { fetchConnectionStatus, triggerFullSync } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
+import { useClickOutside, useTrickleProgress } from '../lib/hooks';
 import StatusBadge from './StatusBadge';
+import ProgressBar from './ProgressBar';
+
+// Label fase mengikuti urutan pipeline nyata di backend: katalog Shopee & Iklan berjalan
+// berbarengan lebih dulu (bagian terberat), lalu rekonsiliasi gudang. Ditampilkan sebagai
+// estimasi aktivitas berdasarkan kemajuan bilah, bukan klaim porsi data yang persis.
+function syncPhaseLabel(value) {
+  if (value >= 90) return 'Menyelesaikan…';
+  if (value >= 60) return 'Merekonsiliasi stok gudang…';
+  return 'Mengambil katalog & iklan Shopee…';
+}
 
 export default function Navbar({ onMenu }) {
   const [syncing, setSyncing] = useState(false);
   const [status, setStatus] = useState(null);
   const [message, setMessage] = useState('');
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const progress = useTrickleProgress();
   const { user, logout } = useAuth();
   const { stores, selectedStoreId, selectedStore, switchStore } = useStore();
   const isAdmin = user?.role === 'ADMIN';
 
+  const dropdownRef = useClickOutside(() => setStoreDropdownOpen(false), storeDropdownOpen);
+
   const loadStatus = async () => setStatus(await fetchConnectionStatus());
   useEffect(() => { loadStatus(); }, []);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setStoreDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
     setMessage('');
+    progress.start();
     try {
       const result = await triggerFullSync(selectedStoreId || null);
       setMessage(result.message || result.error || 'Sync selesai.');
@@ -45,6 +48,7 @@ export default function Navbar({ onMenu }) {
     } catch (error) {
       setMessage(error?.message || 'Sync gagal. Snapshot sebelumnya tetap digunakan.');
     } finally {
+      progress.done();
       setSyncing(false);
     }
   };
@@ -81,7 +85,7 @@ export default function Navbar({ onMenu }) {
             </button>
 
             {storeDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="dropdown-panel absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5 z-50">
                 <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   Daftar Toko Shopee
                 </div>
@@ -185,7 +189,16 @@ export default function Navbar({ onMenu }) {
           </div>
         </div>
       </div>
-      {message && <div className="border-t border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 sm:px-6">{message}</div>}
+      {/* Bilah progres tipis menempel di tepi bawah header selama Sync berjalan — memberi
+          umpan balik "sedang bekerja" yang jelas, bukan sekadar ikon berputar. */}
+      {progress.active && (
+        <div className="border-t border-slate-200 bg-white px-4 py-2 sm:px-6">
+          <ProgressBar value={progress.value} label={syncPhaseLabel(progress.value)} showValue height={5} />
+        </div>
+      )}
+      {!progress.active && message && (
+        <div className="border-t border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 sm:px-6">{message}</div>
+      )}
     </header>
   );
 }

@@ -51,7 +51,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .ui-select:hover { border-color: #b8c0cc; background-color: #fcfcfd; }
-.ui-select:focus { border-color: var(--rose); box-shadow: 0 0 0 3px #fce7f3; outline: none; }
+/* Fokus: cincin merah lembut + caret ikut menjadi merah, jadi terasa "hidup" dan jelas
+   sedang aktif — bukan sekadar berubah warna garis tepi. */
+.ui-select:focus {
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px #fce7f3;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d92d70' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
 .ui-select:disabled { cursor: not-allowed; background-color: #f2f4f7; color: #98a2b3; opacity: 1; }
 .ui-select option { background: #ffffff; color: var(--ink); }
 
@@ -99,8 +106,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .fade-in { animation: fadeIn 320ms ease-out both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* Panel dropdown/menu: muncul mengembang lembut dari atas dengan titik asal di ujung atas,
+   memberi kesan "membuka" alih-alih sekadar tampil. Menggantikan kelas plugin
+   `animate-in` yang tidak terpasang di proyek ini (sebelumnya diam-diam tidak beranimasi). */
+.dropdown-panel {
+  transform-origin: top;
+  animation: dropdownIn 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Progress bar tak tentu (indeterminate): pita meluncur saat durasi total tidak
+   diketahui. Dipakai lewat komponen <ProgressBar indeterminate />. */
+.progress-indeterminate {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--rose), transparent);
+  animation: progressSlide 1.15s ease-in-out infinite;
+}
+@keyframes progressSlide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
 /* Hormati preferensi pengguna yang mengurangi gerak. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after { animation: none; }
   .fade-in { animation: none; }
+  .dropdown-panel { animation: none; }
+  .progress-indeterminate { animation: none; width: 100%; left: 0; opacity: 0.6; }
 }
