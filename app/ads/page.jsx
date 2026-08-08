@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target, Clock } from 'lucide-react';
@@ -10,10 +10,12 @@ import EmptyState from '../../components/EmptyState';
 import ProgressBar from '../../components/ProgressBar';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
+import DateRangePicker from '../../components/DateRangePicker';
 import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
 import { useSnapshotRefresh, useTrickleProgress } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
+import { useDateRange } from '../../context/DateRangeContext';
 
 // Dimuat dinamis (tanpa SSR) agar recharts tidak membebani first-load halaman iklan,
 // mengikuti pola SalesChart di Beranda.
@@ -38,8 +40,21 @@ export default function AdsPage() {
   const [campaignDirection, setCampaignDirection] = useState('desc');
   // Filter status kampanye: 'all' | 'ongoing' (Berjalan) | 'paused' (Dijeda = selain berjalan).
   const [campaignStateFilter, setCampaignStateFilter] = useState('all');
+  // Mode rentang custom (dari DateRangePicker) hidup berdampingan dengan selektor
+  // periode preset. Aktif hanya setelah user mengubah picker; klik tombol periode
+  // mengembalikannya ke mode preset.
+  const [useCustomRange, setUseCustomRange] = useState(false);
   const syncProgress = useTrickleProgress();
   const { selectedStoreId } = useStore();
+  const { startDate, endDate } = useDateRange();
+
+  // Lewati nilai awal context saat mount; hanya aktifkan mode custom saat user
+  // benar-benar mengubah rentang.
+  const rangeTouched = useRef(false);
+  useEffect(() => {
+    if (!rangeTouched.current) { rangeTouched.current = true; return; }
+    setUseCustomRange(true);
+  }, [startDate, endDate]);
 
   const loadAds = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
@@ -49,6 +64,8 @@ export default function AdsPage() {
         sort_by: campaignSort,
         direction: campaignDirection,
         store_id: selectedStoreId || undefined,
+        // Rentang custom menang; backend memprioritaskan start_date/end_date atas period.
+        ...(useCustomRange ? { start_date: startDate, end_date: endDate } : {}),
       });
       setAds(response?.success ? response : null);
     } catch (err) {
@@ -56,7 +73,7 @@ export default function AdsPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, campaignSort, campaignDirection, selectedStoreId]);
+  }, [period, campaignSort, campaignDirection, selectedStoreId, useCustomRange, startDate, endDate]);
 
   useEffect(() => {
     loadAds(period);
@@ -76,7 +93,7 @@ export default function AdsPage() {
     }
   };
 
-  const isRealTime = period === 'real_time';
+  const isRealTime = period === 'real_time' && !useCustomRange;
 
   // "Berjalan" = kampanye ongoing; "Dijeda" = selain ongoing (paused/ended/closed) —
   // sesuai lencana status pada tabel.
@@ -137,35 +154,52 @@ export default function AdsPage() {
               {loading && <RefreshCw className="h-3 w-3 animate-spin text-rose-500" />}
             </div>
             <p className="text-[11px] text-slate-500">
-              {period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
-              {period === 'yesterday' && 'Data performa penutupan hari kemarin'}
-              {period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
-              {period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
+              {useCustomRange && `Rentang custom: ${startDate} s.d. ${endDate}`}
+              {!useCustomRange && period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
+              {!useCustomRange && period === 'yesterday' && 'Data performa penutupan hari kemarin'}
+              {!useCustomRange && period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
+              {!useCustomRange && period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PERIOD_OPTIONS.map((opt) => {
-            const isActive = period === opt.id;
-            return (
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {PERIOD_OPTIONS.map((opt) => {
+              const isActive = !useCustomRange && period === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={loading && isActive}
+                  onClick={() => { setUseCustomRange(false); setPeriod(opt.id); }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    isActive
+                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
+                  } ${loading ? 'opacity-90' : ''}`}
+                >
+                  {opt.badge && (
+                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
+                  )}
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Berdampingan: pilih rentang tanggal bebas. Aktif = mengalahkan preset di atas. */}
+          <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${useCustomRange ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200/90 bg-slate-50'}`}>
+            <DateRangePicker />
+            {useCustomRange && (
               <button
-                key={opt.id}
                 type="button"
-                disabled={loading && isActive}
-                onClick={() => setPeriod(opt.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  isActive
-                    ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
-                } ${loading ? 'opacity-90' : ''}`}
+                onClick={() => { setUseCustomRange(false); }}
+                className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-slate-500 hover:text-rose-700"
+                title="Kembali ke periode preset"
               >
-                {opt.badge && (
-                  <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
-                )}
-                {opt.label}
+                Reset
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
       </div>
 

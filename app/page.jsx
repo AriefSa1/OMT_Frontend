@@ -11,10 +11,13 @@ import EmptyState from '../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
 import DailyBriefingCard from '../components/DailyBriefingCard';
 import TrafficSourcePanel from '../components/TrafficSourcePanel';
+import DateRangePicker from '../components/DateRangePicker';
+import ProductOverviewPanel from '../components/ProductOverviewPanel';
 import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 import { useStore } from '../context/StoreContext';
+import { useDateRange } from '../context/DateRangeContext';
 
 const PERIOD_OPTIONS = [
   { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
@@ -44,19 +47,20 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('real_time');
   const { selectedStoreId } = useStore();
+  const { startDate, endDate } = useDateRange();
 
   const loadData = useCallback(async () => {
     setLoading(true);
     const [overview, logData, trafficData] = await Promise.all([
       fetchDashboardOverview(selectedStoreId, period),
       fetchSyncLogs(),
-      fetchTrafficSources(7, selectedStoreId),
+      fetchTrafficSources({ startDate, endDate, storeId: selectedStoreId }),
     ]);
     setData(overview);
     setLogs(logData?.logs || []);
     setTraffic(trafficData);
     setLoading(false);
-  }, [selectedStoreId, period]);
+  }, [selectedStoreId, period, startDate, endDate]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);
@@ -71,7 +75,8 @@ export default function DashboardOverview() {
         title="Beranda"
         description="Ringkasan operasional berbasis snapshot lokal. Gunakan Sync pada header untuk memperbarui data dari sumber terhubung."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <DateRangePicker />
             <Link href="/settings" className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Pengaturan koneksi</Link>
           </div>
         }
@@ -82,6 +87,11 @@ export default function DashboardOverview() {
           <DataSourceNote meta={data?.dataState?.warehouse} />
         </div>
       </PageHeader>
+
+      <div>
+        <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
+        <ProductOverviewPanel />
+      </div>
 
       {loading ? <MetricLoading /> : (
         <>

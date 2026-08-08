@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { StoreProvider } from '../context/StoreContext';
+import { DateRangeProvider } from '../context/DateRangeContext';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import ServerWakeBanner from '../components/ServerWakeBanner';
@@ -13,8 +14,10 @@ export default function AppShell({ children }) {
   return (
     <AuthProvider>
       <StoreProvider>
-        <ServerWakeBanner />
-        <AppShellContent>{children}</AppShellContent>
+        <DateRangeProvider>
+          <ServerWakeBanner />
+          <AppShellContent>{children}</AppShellContent>
+        </DateRangeProvider>
       </StoreProvider>
     </AuthProvider>
   );
