@@ -16,6 +16,18 @@ function fmtDate(sec) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// Status dihitung dari periode (start/end vs sekarang) — akurat tanpa menebak kode enum.
+function periodStatus(startSec, endSec) {
+  const now = Date.now() / 1000;
+  if (endSec && now > Number(endSec)) return { label: 'Selesai', cls: 'bg-slate-100 text-slate-600' };
+  if (startSec && now < Number(startSec)) return { label: 'Terjadwal', cls: 'bg-amber-50 text-amber-700' };
+  return { label: 'Berjalan', cls: 'bg-emerald-50 text-emerald-700' };
+}
+function StatusPill({ startSec, endSec }) {
+  const s = periodStatus(startSec, endSec);
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>{s.label}</span>;
+}
+
 const VOUCHER_LIMIT = 10;
 
 export default function PromotionsPage() {
@@ -104,6 +116,7 @@ export default function PromotionsPage() {
                   <tr>
                     <th className="px-5 py-3 font-medium">Promo</th>
                     <th className="px-4 py-3 font-medium">Periode</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 text-right font-medium">Unit</th>
                     <th className="px-4 py-3 text-right font-medium">Pesanan</th>
                     <th className="px-4 py-3 text-right font-medium">Pembeli</th>
@@ -113,11 +126,12 @@ export default function PromotionsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {discLoading ? (
-                    <tr><td colSpan="7" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
+                    <tr><td colSpan="8" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
                   ) : discounts.length ? discounts.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50">
                       <td className="px-5 py-3 font-semibold text-slate-800">{d.name}</td>
                       <td className="px-4 py-3 text-slate-600">{fmtDate(d.startTime)} – {fmtDate(d.endTime)}</td>
+                      <td className="px-4 py-3"><StatusPill startSec={d.startTime} endSec={d.endTime} /></td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatNumber(d.units)}</td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatNumber(d.orders)}</td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatNumber(d.buyers)}</td>
@@ -125,7 +139,7 @@ export default function PromotionsPage() {
                       <td className="px-5 py-3 text-right text-slate-700">{formatIDR(d.salesPerBuyer)}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="7" className="px-5 py-10 text-center"><EmptyState title="Belum ada data promo" message="Tidak ada promo diskon pada rentang ini." /></td></tr>
+                    <tr><td colSpan="8" className="px-5 py-10 text-center"><EmptyState title="Belum ada data promo" message="Tidak ada promo diskon pada rentang ini." /></td></tr>
                   )}
                 </tbody>
               </table>
@@ -148,6 +162,7 @@ export default function PromotionsPage() {
                     <th className="px-4 py-3 font-medium">Nilai</th>
                     <th className="px-4 py-3 font-medium">Min. belanja</th>
                     <th className="px-4 py-3 font-medium">Periode</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 text-right font-medium">Terpakai</th>
                     <th className="px-4 py-3 text-right font-medium">Diklaim</th>
                     <th className="px-5 py-3 font-medium">Target</th>
@@ -155,7 +170,7 @@ export default function PromotionsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {vLoading ? (
-                    <tr><td colSpan="7" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
+                    <tr><td colSpan="8" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
                   ) : vouchers.length ? vouchers.map((v) => (
                     <tr key={v.id} className="hover:bg-slate-50">
                       <td className="px-5 py-3">
@@ -169,12 +184,13 @@ export default function PromotionsPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-700">{v.minSpend > 0 ? formatIDR(v.minSpend) : 'Tanpa minimum'}</td>
                       <td className="px-4 py-3 text-slate-600">{fmtDate(v.startTime)} – {fmtDate(v.endTime)}</td>
+                      <td className="px-4 py-3"><StatusPill startSec={v.startTime} endSec={v.endTime} /></td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatNumber(v.used)}{v.usageLimit ? ` / ${formatNumber(v.usageLimit)}` : ''}</td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatNumber(v.distributed)}</td>
                       <td className="px-5 py-3 text-slate-600">{v.minBuyerOrders > 0 ? `Pembeli ≥ ${v.minBuyerOrders} order` : 'Semua pembeli'}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="7" className="px-5 py-10 text-center"><EmptyState title="Belum ada voucher" message="Toko ini belum punya voucher aktif." /></td></tr>
+                    <tr><td colSpan="8" className="px-5 py-10 text-center"><EmptyState title="Belum ada voucher" message="Toko ini belum punya voucher aktif." /></td></tr>
                   )}
                 </tbody>
               </table>

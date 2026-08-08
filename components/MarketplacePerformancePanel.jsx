@@ -15,12 +15,19 @@ function typeBadge(type) {
   return { label: type || '—', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
 }
 
+const CHANNELS = [
+  { key: 'all', label: 'Semua' },
+  { key: 'shopee', label: 'Shopee' },
+  { key: 'tiktok', label: 'TikTok' },
+];
+
 export default function MarketplacePerformancePanel() {
   const { startDate, endDate } = useDateRange();
   const [rows, setRows] = useState([]);
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [channel, setChannel] = useState('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,7 +41,14 @@ export default function MarketplacePerformancePanel() {
 
   useEffect(() => { load(); }, [load]);
 
-  const totals = rows.reduce((acc, r) => ({
+  const countByChannel = {
+    all: rows.length,
+    shopee: rows.filter((r) => (r.type || '').toLowerCase() === 'shopee').length,
+    tiktok: rows.filter((r) => (r.type || '').toLowerCase() === 'tiktok').length,
+  };
+  const filtered = channel === 'all' ? rows : rows.filter((r) => (r.type || '').toLowerCase() === channel);
+
+  const totals = filtered.reduce((acc, r) => ({
     orderAmount: acc.orderAmount + (r.orderAmount || 0),
     orderCount: acc.orderCount + (r.orderCount || 0),
     adsTotal: acc.adsTotal + (r.adsTotal || 0),
@@ -56,6 +70,20 @@ export default function MarketplacePerformancePanel() {
       </div>
 
       {message && <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{message}</p>}
+
+      {/* Filter kanal */}
+      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+        {CHANNELS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setChannel(c.key)}
+            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${channel === c.key ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            {c.label} <span className="text-slate-400">({countByChannel[c.key] || 0})</span>
+          </button>
+        ))}
+      </div>
 
       {/* Ringkasan */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -91,7 +119,7 @@ export default function MarketplacePerformancePanel() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr><td colSpan="9" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
-              ) : rows.length ? rows.map((r) => {
+              ) : filtered.length ? filtered.map((r) => {
                 const badge = typeBadge(r.type);
                 const pos = (r.profitLoss || 0) >= 0;
                 return (
