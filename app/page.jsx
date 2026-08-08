@@ -13,6 +13,7 @@ import DailyBriefingCard from '../components/DailyBriefingCard';
 import TrafficSourcePanel from '../components/TrafficSourcePanel';
 import DateRangePicker from '../components/DateRangePicker';
 import ProductOverviewPanel from '../components/ProductOverviewPanel';
+import StoreCrossCheckPanel from '../components/StoreCrossCheckPanel';
 import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
@@ -92,6 +93,8 @@ export default function DashboardOverview() {
         <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
         <ProductOverviewPanel />
       </div>
+
+      <StoreCrossCheckPanel />
 
       {loading ? <MetricLoading /> : (
         <>
