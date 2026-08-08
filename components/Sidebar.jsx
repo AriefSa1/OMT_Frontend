@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Megaphone, Settings, ShieldCheck, Sparkles, Store, TrendingUp, X } from 'lucide-react';
+import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Megaphone, Settings, ShieldCheck, Sparkles, Store, Tag, TrendingUp, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { label: 'Katalog Shopee', href: '/shopee', icon: Store },
   { label: 'Performa Produk', href: '/shopee/performance', icon: TrendingUp },
   { label: 'Iklan', href: '/ads', icon: Megaphone },
+  { label: 'Promosi', href: '/promotions', icon: Tag },
   { label: 'Gudang', href: '/warehouse', icon: Boxes },
   { label: 'Pusat Tindakan', href: '/actions', icon: CheckSquare },
   { label: 'Optimasi', href: '/optimization', icon: Gauge },

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -22,9 +22,11 @@ import EmptyState from '../../../components/EmptyState';
 import InfoTooltip from '../../../components/InfoTooltip';
 import Pagination from '../../../components/Pagination';
 import StatusBadge from '../../../components/StatusBadge';
+import DateRangePicker from '../../../components/DateRangePicker';
 import { fetchShopeeProductPerformance, triggerShopeeSync } from '../../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../../lib/utils';
+import { useDateRange } from '../../../context/DateRangeContext';
 
 const PERIOD_OPTIONS = [
   { id: 'real_time', label: 'Real-time (Hari Ini)', icon: Zap, hint: 'Data langsung hari ini sejak 00:00 WIB' },
@@ -115,6 +117,15 @@ export default function ShopeeProductPerformancePage() {
 
   const deferredSearch = useDebouncedValue(search);
   const [appliedSearch, setAppliedSearch] = useState('');
+  // Rentang custom (DateRangePicker) berdampingan dengan preset periode.
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const { startDate, endDate } = useDateRange();
+  const rangeTouched = useRef(false);
+  useEffect(() => {
+    if (!rangeTouched.current) { rangeTouched.current = true; return; }
+    setUseCustomRange(true);
+    setPage(1);
+  }, [startDate, endDate]);
 
   const loadPerformance = useCallback(async () => {
     setLoading(true);
@@ -126,6 +137,7 @@ export default function ShopeeProductPerformancePage() {
         order_type: orderType,
         page_size: pageSize,
         page_num: page,
+        ...(useCustomRange ? { start_date: startDate, end_date: endDate } : {}),
       });
       setData(result?.success ? result : null);
       setError(result?.success ? '' : result?.message || result?.error || 'Data performa produk belum dapat dimuat.');
@@ -135,7 +147,7 @@ export default function ShopeeProductPerformancePage() {
     } finally {
       setLoading(false);
     }
-  }, [period, appliedSearch, orderBy, orderType, pageSize, page]);
+  }, [period, appliedSearch, orderBy, orderType, pageSize, page, useCustomRange, startDate, endDate]);
 
   useEffect(() => {
     loadPerformance();
@@ -227,7 +239,8 @@ export default function ShopeeProductPerformancePage() {
         title="Performa Produk (Bisnis Saya)"
         description="Analisis mendalam performa penjualan, pengunjung, dan rasio konversi produk Shopee berdasarkan periode."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker />
             {isConnected && (
               <button
                 type="button"
@@ -335,13 +348,13 @@ export default function ShopeeProductPerformancePage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
             {PERIOD_OPTIONS.map((item) => {
-              const active = period === item.id;
+              const active = !useCustomRange && period === item.id;
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => { setPeriod(item.id); setPage(1); }}
+                  onClick={() => { setUseCustomRange(false); setPeriod(item.id); setPage(1); }}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                     active
                       ? 'bg-rose-600 text-white shadow-sm'
