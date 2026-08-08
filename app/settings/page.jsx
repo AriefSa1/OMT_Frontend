@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
-import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync } from '../../lib/api';
+import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync, fetchMarketplaces } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { useStore } from '../../context/StoreContext';
 
@@ -37,6 +37,9 @@ export default function SettingsPage() {
   const [warehouseTestResult, setWarehouseTestResult] = useState(null);
   const [message, setMessage] = useState('');
   const [showAddStore, setShowAddStore] = useState(false);
+  const [marketplaces, setMarketplaces] = useState([]);
+  const [selectedMp, setSelectedMp] = useState('');
+  const [mpLoading, setMpLoading] = useState(false);
 
   const { stores, selectedStoreId, switchStore, toggleStoreActive, removeStore, refreshStores } = useStore();
 
@@ -113,6 +116,19 @@ export default function SettingsPage() {
     }
   };
 
+  // Muat daftar marketplace Gudang saat form daftar toko dibuka (sekali).
+  useEffect(() => {
+    if (!showAddStore || marketplaces.length || mpLoading) return;
+    let cancelled = false;
+    (async () => {
+      setMpLoading(true);
+      const res = await fetchMarketplaces();
+      if (!cancelled) setMarketplaces(res?.marketplaces || []);
+      if (!cancelled) setMpLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [showAddStore, marketplaces.length, mpLoading]);
+
   const connectCookie = async (event) => {
     event.preventDefault();
     if (!cookie.trim()) {
@@ -120,7 +136,8 @@ export default function SettingsPage() {
       return;
     }
     setConnecting(true);
-    const response = await updateShopeeCookie(cookie.trim(), cookieStoreName.trim());
+    const mp = marketplaces.find((m) => String(m.id) === String(selectedMp)) || null;
+    const response = await updateShopeeCookie(cookie.trim(), cookieStoreName.trim(), mp);
     setMessage(
       response.success
         ? 'Sesi Shopee toko tersimpan dan sinkronisasi awal berhasil!'
@@ -129,6 +146,7 @@ export default function SettingsPage() {
     if (response.success) {
       setCookie('');
       setCookieStoreName('');
+      setSelectedMp('');
       setShowAddStore(false);
       await refreshStores();
     }
@@ -326,6 +344,24 @@ export default function SettingsPage() {
                   placeholder="Contoh: Toko Fashion Official"
                   className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-rose-500"
                 />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-medium text-slate-700">Marketplace Gudang (untuk cross-check laba/omzet) — opsional</span>
+                <select
+                  value={selectedMp}
+                  onChange={(event) => setSelectedMp(event.target.value)}
+                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-rose-500"
+                >
+                  <option value="">{mpLoading ? 'Memuat daftar marketplace…' : '— Tidak dipetakan —'}</option>
+                  {marketplaces.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}{m.type ? ` (${m.type})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-[11px] text-slate-500">
+                  Kaitkan toko ini dengan marketplace di sistem Gudang agar angka “menurut Gudang” bisa dicocokkan. Bisa dikosongkan.
+                </span>
               </label>
               <label className="block sm:col-span-2">
                 <span className="text-xs font-medium text-slate-700">Cookie Header Seller Center</span>
