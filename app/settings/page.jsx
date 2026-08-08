@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
-import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync, fetchMarketplaces } from '../../lib/api';
+import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { useStore } from '../../context/StoreContext';
 
@@ -116,9 +116,10 @@ export default function SettingsPage() {
     }
   };
 
-  // Muat daftar marketplace Gudang saat form daftar toko dibuka (sekali).
+  // Muat daftar marketplace Gudang saat form daftar toko dibuka ATAU saat sudah ada
+  // toko (untuk kontrol pemetaan per-baris). Cukup sekali.
   useEffect(() => {
-    if (!showAddStore || marketplaces.length || mpLoading) return;
+    if (!(showAddStore || stores.length) || marketplaces.length || mpLoading) return;
     let cancelled = false;
     (async () => {
       setMpLoading(true);
@@ -127,7 +128,28 @@ export default function SettingsPage() {
       if (!cancelled) setMpLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [showAddStore, marketplaces.length, mpLoading]);
+  }, [showAddStore, stores.length, marketplaces.length, mpLoading]);
+
+  const [mappingStoreId, setMappingStoreId] = useState(null);
+  const handleMapStore = async (storeId, mpId) => {
+    setMappingStoreId(storeId);
+    try {
+      const mp = marketplaces.find((m) => String(m.id) === String(mpId)) || null;
+      const res = await updateStoreMarketplace(storeId, mp);
+      setMessage(res.success ? 'Pemetaan marketplace diperbarui.' : (res.error || 'Gagal memperbarui pemetaan.'));
+      await refreshStores();
+    } catch (err) {
+      setMessage(`Gagal memetakan: ${err.message}`);
+    } finally {
+      setMappingStoreId(null);
+    }
+  };
+
+  // Marketplace diurut Shopee dulu lalu nama — dipakai dropdown form & per-baris.
+  const sortedMarketplaces = [...marketplaces].sort((a, b) => {
+    const rank = (t) => (String(t).toLowerCase() === 'shopee' ? 0 : 1);
+    return rank(a.type) - rank(b.type) || String(a.name).localeCompare(String(b.name));
+  });
 
   const connectCookie = async (event) => {
     event.preventDefault();
@@ -261,6 +283,7 @@ export default function SettingsPage() {
                 <th className="px-4 py-3">Nama Toko</th>
                 <th className="px-4 py-3">Store ID</th>
                 <th className="px-4 py-3">Katalog Produk</th>
+                <th className="px-4 py-3">Marketplace Gudang</th>
                 <th className="px-4 py-3">Terakhir Sync</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Aksi</th>
@@ -269,7 +292,7 @@ export default function SettingsPage() {
             <tbody className="divide-y divide-slate-200 bg-white">
               {stores.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
                     Belum ada toko Shopee terhubung. Klik &quot;Hubungkan Toko Baru&quot; di atas untuk menambahkan.
                   </td>
                 </tr>
@@ -285,6 +308,22 @@ export default function SettingsPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-slate-500">{s.storeId}</td>
                     <td className="px-4 py-3 font-medium text-slate-700">{s.productCount || 0} item</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={s.marketplaceId || ''}
+                        disabled={mappingStoreId === s.storeId || mpLoading}
+                        onChange={(event) => handleMapStore(s.storeId, event.target.value)}
+                        className="h-8 max-w-[190px] rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-800 focus:outline-rose-500 disabled:opacity-60"
+                        title="Petakan toko ini ke marketplace di sistem Gudang"
+                      >
+                        <option value="">{mpLoading ? 'Memuat…' : '— Belum dipetakan —'}</option>
+                        {sortedMarketplaces.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} — {m.type}{m.username && m.username.toLowerCase() !== String(m.name).toLowerCase() ? ` · ${m.username}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-4 py-3 text-slate-500">{formatDataTime(s.lastSyncedAt)}</td>
                     <td className="px-4 py-3">
                       <button
@@ -353,17 +392,11 @@ export default function SettingsPage() {
                   className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-rose-500"
                 >
                   <option value="">{mpLoading ? 'Memuat daftar marketplace…' : '— Tidak dipetakan —'}</option>
-                  {[...marketplaces]
-                    .sort((a, b) => {
-                      // Shopee didahulukan (toko app ini toko Shopee), lalu urut nama.
-                      const rank = (t) => (String(t).toLowerCase() === 'shopee' ? 0 : 1);
-                      return rank(a.type) - rank(b.type) || String(a.name).localeCompare(String(b.name));
-                    })
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} — {m.type}{m.username && m.username.toLowerCase() !== String(m.name).toLowerCase() ? ` · ${m.username}` : ''}
-                      </option>
-                    ))}
+                  {sortedMarketplaces.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} — {m.type}{m.username && m.username.toLowerCase() !== String(m.name).toLowerCase() ? ` · ${m.username}` : ''}
+                    </option>
+                  ))}
                 </select>
                 <span className="mt-1 block text-[11px] text-slate-500">
                   Kaitkan toko ini dengan marketplace di sistem Gudang agar angka “menurut Gudang” bisa dicocokkan. Bisa dikosongkan.
