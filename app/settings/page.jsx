@@ -353,11 +353,17 @@ export default function SettingsPage() {
                   className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-rose-500"
                 >
                   <option value="">{mpLoading ? 'Memuat daftar marketplace…' : '— Tidak dipetakan —'}</option>
-                  {marketplaces.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}{m.type ? ` (${m.type})` : ''}
-                    </option>
-                  ))}
+                  {[...marketplaces]
+                    .sort((a, b) => {
+                      // Shopee didahulukan (toko app ini toko Shopee), lalu urut nama.
+                      const rank = (t) => (String(t).toLowerCase() === 'shopee' ? 0 : 1);
+                      return rank(a.type) - rank(b.type) || String(a.name).localeCompare(String(b.name));
+                    })
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} — {m.type}{m.username && m.username.toLowerCase() !== String(m.name).toLowerCase() ? ` · ${m.username}` : ''}
+                      </option>
+                    ))}
                 </select>
                 <span className="mt-1 block text-[11px] text-slate-500">
                   Kaitkan toko ini dengan marketplace di sistem Gudang agar angka “menurut Gudang” bisa dicocokkan. Bisa dikosongkan.
