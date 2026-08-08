@@ -29,6 +29,7 @@ import Pagination from '../../components/Pagination';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import WarehouseDetailModal from '../../components/WarehouseDetailModal';
 import WarehouseTeamOverview from '../../components/WarehouseTeamOverview';
+import MarketplacePerformancePanel from '../../components/MarketplacePerformancePanel';
 import { fetchWarehouseInventory, fetchWarehouseTeamOverview, triggerWarehouseSync } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber } from '../../lib/utils';
@@ -217,6 +218,8 @@ export default function WarehousePage() {
           {syncError}
         </div>
       )}
+
+      <MarketplacePerformancePanel />
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
