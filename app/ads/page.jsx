@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target, Clock } from 'lucide-react';
+import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -23,13 +23,6 @@ const AdsTrendChart = dynamic(() => import('../../components/AdsTrendChart'), {
   ssr: false,
   loading: () => <div className="skeleton h-full min-h-[320px] rounded-md" />,
 });
-
-const PERIOD_OPTIONS = [
-  { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
-  { id: 'yesterday', label: 'Kemarin' },
-  { id: 'past7days', label: '7 Hari Terakhir' },
-  { id: 'past30days', label: '30 Hari Terakhir' },
-];
 
 export default function AdsPage() {
   const [ads, setAds] = useState(null);
@@ -114,7 +107,8 @@ export default function AdsPage() {
         title="Iklan"
         description="Kinerja kampanye Product Ads dari Shopee Seller Center secara langsung dan snapshot historis."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <DateRangePicker />
             <button
               type="button"
               onClick={sync}
@@ -141,67 +135,6 @@ export default function AdsPage() {
       {syncProgress.active && (
         <ProgressBar value={syncProgress.value} label="Menyinkronkan data iklan…" showValue height={5} />
       )}
-
-      {/* Period Selection Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-            <Clock className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-800">Periode Iklan</span>
-              {loading && <RefreshCw className="h-3 w-3 animate-spin text-rose-500" />}
-            </div>
-            <p className="text-[11px] text-slate-500">
-              {useCustomRange && `Rentang custom: ${startDate} s.d. ${endDate}`}
-              {!useCustomRange && period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
-              {!useCustomRange && period === 'yesterday' && 'Data performa penutupan hari kemarin'}
-              {!useCustomRange && period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
-              {!useCustomRange && period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-col items-stretch gap-2 sm:items-end">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PERIOD_OPTIONS.map((opt) => {
-              const isActive = !useCustomRange && period === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  disabled={loading && isActive}
-                  onClick={() => { setUseCustomRange(false); setPeriod(opt.id); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
-                  } ${loading ? 'opacity-90' : ''}`}
-                >
-                  {opt.badge && (
-                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
-                  )}
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          {/* Berdampingan: pilih rentang tanggal bebas. Aktif = mengalahkan preset di atas. */}
-          <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${useCustomRange ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200/90 bg-slate-50'}`}>
-            <DateRangePicker />
-            {useCustomRange && (
-              <button
-                type="button"
-                onClick={() => { setUseCustomRange(false); }}
-                className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-slate-500 hover:text-rose-700"
-                title="Kembali ke periode preset"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
 
       <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
         <MetricCard title="Iklan Dilihat" value={formatNumber(ads?.impressions)} icon={Eye} trend={ads?.trend?.impressions} tone="slate" tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />

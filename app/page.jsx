@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, Clock, RefreshCw } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, RefreshCw } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
@@ -14,18 +14,12 @@ import TrafficSourcePanel from '../components/TrafficSourcePanel';
 import DateRangePicker from '../components/DateRangePicker';
 import ProductOverviewPanel from '../components/ProductOverviewPanel';
 import StoreCrossCheckPanel from '../components/StoreCrossCheckPanel';
-import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources } from '../lib/api';
+import OnboardingGuide from '../components/OnboardingGuide';
+import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources, triggerFullSync } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 import { useStore } from '../context/StoreContext';
 import { useDateRange } from '../context/DateRangeContext';
-
-const PERIOD_OPTIONS = [
-  { id: 'real_time', label: 'Hari Ini (Real-Time)', badge: 'Live' },
-  { id: 'yesterday', label: 'Kemarin' },
-  { id: 'past7days', label: '7 Hari Terakhir' },
-  { id: 'past30days', label: '30 Hari Terakhir' },
-];
 
 const SalesChart = dynamic(() => import('../components/SalesChart'), {
   ssr: false,
@@ -70,6 +64,24 @@ export default function DashboardOverview() {
   // The KPI is one day, not a running total — name the day so it cannot be read as a sum.
   const latestDay = data?.salesTrend?.length ? data.salesTrend[data.salesTrend.length - 1].day : null;
   const trend = data?.kpiTrend;
+  const { stores } = useStore();
+  const [syncingGuide, setSyncingGuide] = useState(false);
+
+  const handleGuideSync = async () => {
+    setSyncingGuide(true);
+    try {
+      await triggerFullSync(selectedStoreId || null);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncingGuide(false);
+    }
+  };
+
+  const hasConnectedStore = stores.length > 0;
+  const hasCatalogData = Boolean(data?.dataState?.catalog?.hasData);
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -89,6 +101,15 @@ export default function DashboardOverview() {
         </div>
       </PageHeader>
 
+      {(!hasConnectedStore || !hasCatalogData) && (
+        <OnboardingGuide
+          hasStore={hasConnectedStore}
+          hasData={hasCatalogData}
+          onSync={handleGuideSync}
+          syncing={syncingGuide}
+        />
+      )}
+
       <div>
         <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
         <ProductOverviewPanel />
@@ -99,47 +120,6 @@ export default function DashboardOverview() {
       {loading ? <MetricLoading /> : (
         <>
           <h2 className="text-base font-semibold text-slate-800 mb-2">Performa Iklan</h2>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                <Clock className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800">Periode Iklan</span>
-                  {loading && <RefreshCw className="h-3 w-3 animate-spin text-rose-500" />}
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  {period === 'real_time' && 'Data performa berjalan hari ini (Real-time)'}
-                  {period === 'yesterday' && 'Data performa penutupan hari kemarin'}
-                  {period === 'past7days' && 'Akumulasi performa 7 hari terakhir'}
-                  {period === 'past30days' && 'Akumulasi performa 30 hari terakhir'}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {PERIOD_OPTIONS.map((opt) => {
-                const isActive = period === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    disabled={loading && isActive}
-                    onClick={() => setPeriod(opt.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isActive
-                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/90'
-                      } ${loading ? 'opacity-90' : ''}`}
-                  >
-                    {opt.badge && (
-                      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
-                    )}
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           {trend?.previousDate && (
             <p className="text-xs text-slate-500">
               Statistik dibandingkan terhadap {trend.previousDate}.
