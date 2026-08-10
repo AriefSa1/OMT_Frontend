@@ -20,6 +20,7 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
     rose: 'bg-rose-50 text-rose-700',
     emerald: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-amber-50 text-amber-700',
+    blue: 'bg-blue-50 text-blue-700',
   };
 
   const direction = trend?.direction || null;

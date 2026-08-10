@@ -17,7 +17,8 @@ const NAV_GROUPS = [
     items: [
       { label: 'Katalog Produk', href: '/shopee', icon: Store },
       { label: 'Detail Pesanan', href: '/orders', icon: ShoppingBag },
-      { label: 'Iklan & Promosi', href: '/ads', icon: Megaphone },
+      { label: 'Iklan', href: '/ads', icon: Megaphone },
+      { label: 'Promosi', href: '/promotions', icon: Tag },
     ],
   },
   {

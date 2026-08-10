@@ -6,15 +6,10 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   BarChart3,
-  Calendar,
-  CheckCircle2,
-  FileSpreadsheet,
   PackageCheck,
-  RefreshCw,
   RotateCcw,
   ShoppingBag,
   TrendingDown,
-  TrendingUp,
   XCircle,
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
@@ -56,7 +51,6 @@ export default function OrdersPage() {
 
   const orderQuality = data?.orderQuality;
   const salesTrend = data?.salesTrend || [];
-  const latestOrder = salesTrend.length ? salesTrend[salesTrend.length - 1] : null;
   const trend = data?.kpiTrend;
 
   return (
