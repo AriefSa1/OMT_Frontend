@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
@@ -118,17 +118,25 @@ export default function SettingsPage() {
 
   // Muat daftar marketplace Gudang saat form daftar toko dibuka ATAU saat sudah ada
   // toko (untuk kontrol pemetaan per-baris). Cukup sekali.
+  // Pakai ref sebagai guard — JANGAN taruh mpLoading/marketplaces di deps, karena
+  // setMpLoading(true) akan mengubah deps → cleanup membatalkan fetch-nya sendiri
+  // (cancelled=true) → hasil dibuang → stuck "Memuat…".
+  const mpLoadedRef = useRef(false);
   useEffect(() => {
-    if (!(showAddStore || stores.length) || marketplaces.length || mpLoading) return;
-    let cancelled = false;
+    if (!(showAddStore || stores.length) || mpLoadedRef.current) return;
+    mpLoadedRef.current = true; // guard: fetch sekali saja
     (async () => {
       setMpLoading(true);
-      const res = await fetchMarketplaces();
-      if (!cancelled) setMarketplaces(res?.marketplaces || []);
-      if (!cancelled) setMpLoading(false);
+      try {
+        const res = await fetchMarketplaces();
+        setMarketplaces(res?.marketplaces || []);
+      } catch {
+        mpLoadedRef.current = false; // gagal → izinkan coba lagi di render berikutnya
+      } finally {
+        setMpLoading(false);
+      }
     })();
-    return () => { cancelled = true; };
-  }, [showAddStore, stores.length, marketplaces.length, mpLoading]);
+  }, [showAddStore, stores.length]);
 
   const [mappingStoreId, setMappingStoreId] = useState(null);
   const handleMapStore = async (storeId, mpId) => {
