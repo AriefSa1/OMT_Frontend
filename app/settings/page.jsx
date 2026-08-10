@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
-import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
+import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerSyncAndPoll, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { useStore } from '../../context/StoreContext';
 
@@ -187,8 +187,8 @@ export default function SettingsPage() {
   const handleSyncStore = async (storeId) => {
     setSyncingStoreId(storeId);
     try {
-      const res = await triggerShopeeSync(storeId);
-      setMessage(res.message || (res.success ? 'Sinkronisasi toko berhasil.' : 'Sinkronisasi gagal.'));
+      const res = await triggerSyncAndPoll({ storeId });
+      setMessage(res.pending ? 'Sinkronisasi berjalan di latar belakang…' : (res.success ? 'Sinkronisasi toko berhasil.' : (res.error || 'Sinkronisasi gagal.')));
       await refreshStores();
       await loadData();
     } catch (err) {

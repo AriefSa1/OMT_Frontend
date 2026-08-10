@@ -23,7 +23,7 @@ import InfoTooltip from '../../../components/InfoTooltip';
 import Pagination from '../../../components/Pagination';
 import StatusBadge from '../../../components/StatusBadge';
 import DateRangePicker from '../../../components/DateRangePicker';
-import { fetchShopeeProductPerformance, triggerShopeeSync } from '../../../lib/api';
+import { fetchShopeeProductPerformance, triggerSyncAndPoll } from '../../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../../lib/utils';
 import { useDateRange } from '../../../context/DateRangeContext';
@@ -164,8 +164,8 @@ export default function ShopeeProductPerformancePage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const result = await triggerShopeeSync();
-      if (!result?.success) setError(result?.message || result?.error || 'Sinkronisasi Shopee gagal.');
+      const result = await triggerSyncAndPoll({ storeId: null });
+      if (!result?.success) setError(result?.error || 'Sinkronisasi Shopee gagal.');
       await loadPerformance();
     } catch (syncError) {
       setError(syncError?.message || 'Sinkronisasi Shopee gagal.');

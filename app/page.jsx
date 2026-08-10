@@ -15,7 +15,7 @@ import DateRangePicker from '../components/DateRangePicker';
 import ProductOverviewPanel from '../components/ProductOverviewPanel';
 import StoreCrossCheckPanel from '../components/StoreCrossCheckPanel';
 import OnboardingGuide from '../components/OnboardingGuide';
-import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources, triggerFullSync } from '../lib/api';
+import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources, triggerSyncAndPoll } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 import { useStore } from '../context/StoreContext';
@@ -70,7 +70,7 @@ export default function DashboardOverview() {
   const handleGuideSync = async () => {
     setSyncingGuide(true);
     try {
-      await triggerFullSync(selectedStoreId || null);
+      await triggerSyncAndPoll({ storeId: selectedStoreId || null });
       await loadData();
     } catch (e) {
       console.error(e);

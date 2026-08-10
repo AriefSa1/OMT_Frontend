@@ -11,7 +11,7 @@ import ProgressBar from '../../components/ProgressBar';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
 import DateRangePicker from '../../components/DateRangePicker';
-import { fetchShopeeAds, triggerFullSync } from '../../lib/api';
+import { fetchShopeeAds, triggerSyncAndPoll } from '../../lib/api';
 import { useSnapshotRefresh, useTrickleProgress } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
@@ -78,7 +78,7 @@ export default function AdsPage() {
     setSyncing(true);
     syncProgress.start();
     try {
-      await triggerFullSync(selectedStoreId);
+      await triggerSyncAndPoll({ storeId: selectedStoreId });
       await loadAds(period);
     } finally {
       syncProgress.done();
