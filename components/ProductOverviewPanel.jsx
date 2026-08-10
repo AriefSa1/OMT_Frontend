@@ -60,15 +60,24 @@ export default function ProductOverviewPanel() {
       setLoading(true);
       setMessage('');
       const params = { storeId: selectedStoreId || null, startDate, endDate };
-      const [ov, tr] = await Promise.all([
-        fetchProductOverview(params),
-        fetchProductTrends(params),
-      ]);
-      if (cancelled) return;
-      setOverview(ov?.metrics || null);
-      setSeries(tr?.series || {});
-      if (!ov?.success && ov?.message) setMessage(ov.message);
-      setLoading(false);
+      try {
+        const [ov, tr] = await Promise.all([
+          fetchProductOverview(params),
+          fetchProductTrends(params),
+        ]);
+        if (cancelled) return;
+        setOverview(ov?.metrics || null);
+        setSeries(tr?.series || {});
+        if (!ov?.success && ov?.message) setMessage(ov.message);
+      } catch (err) {
+        if (!cancelled) {
+          setOverview(null);
+          setSeries({});
+          setMessage(`Gagal memuat ringkasan produk: ${err?.message || 'kesalahan tak terduga'}`);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [selectedStoreId, startDate, endDate]);

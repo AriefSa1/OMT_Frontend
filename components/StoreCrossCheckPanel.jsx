@@ -43,15 +43,22 @@ export default function StoreCrossCheckPanel() {
     if (!mpId) return;
     setLoading(true);
     setMessage('');
-    const [mp, ov] = await Promise.all([
-      fetchMarketplacePerformance({ startDate, endDate }),
-      fetchProductOverview({ storeId: selectedStore?.storeId || null, startDate, endDate }),
-    ]);
-    const row = (mp?.rows || []).find((r) => String(r.id) === String(mpId)) || null;
-    setGudangRow(row);
-    setShopeeMetrics(ov?.metrics || null);
-    if (!row) setMessage('Marketplace terpetakan tidak ditemukan di data Gudang untuk rentang ini.');
-    setLoading(false);
+    try {
+      const [mp, ov] = await Promise.all([
+        fetchMarketplacePerformance({ startDate, endDate }),
+        fetchProductOverview({ storeId: selectedStore?.storeId || null, startDate, endDate }),
+      ]);
+      const row = (mp?.rows || []).find((r) => String(r.id) === String(mpId)) || null;
+      setGudangRow(row);
+      setShopeeMetrics(ov?.metrics || null);
+      if (!row) setMessage('Marketplace terpetakan tidak ditemukan di data Gudang untuk rentang ini.');
+    } catch (err) {
+      setGudangRow(null);
+      setShopeeMetrics(null);
+      setMessage(`Gagal memuat cross-check: ${err?.message || 'kesalahan tak terduga'}`);
+    } finally {
+      setLoading(false);
+    }
   }, [mpId, selectedStore?.storeId, startDate, endDate]);
 
   useEffect(() => { load(); }, [load]);

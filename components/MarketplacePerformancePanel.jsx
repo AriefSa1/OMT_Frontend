@@ -32,11 +32,17 @@ export default function MarketplacePerformancePanel() {
   const load = useCallback(async () => {
     setLoading(true);
     setMessage('');
-    const res = await fetchMarketplacePerformance({ startDate, endDate });
-    setRows(res?.rows || []);
-    setTeam(res?.team || null);
-    if (!res?.success && res?.message) setMessage(res.message);
-    setLoading(false);
+    try {
+      const res = await fetchMarketplacePerformance({ startDate, endDate });
+      setRows(res?.rows || []);
+      setTeam(res?.team || null);
+      if (!res?.success && res?.message) setMessage(res.message);
+    } catch (err) {
+      setRows([]);
+      setMessage(`Gagal memuat performa marketplace: ${err?.message || 'kesalahan tak terduga'}`);
+    } finally {
+      setLoading(false);
+    }
   }, [startDate, endDate]);
 
   useEffect(() => { load(); }, [load]);
