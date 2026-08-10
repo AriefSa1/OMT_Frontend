@@ -41,12 +41,13 @@ export default function OrdersPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const overview = await fetchDashboardOverview(selectedStoreId, 'real_time');
+      // Kirim rentang tanggal → KPI, salesTrend, dan orderQuality ikut rentang terpilih.
+      const overview = await fetchDashboardOverview(selectedStoreId, 'real_time', { startDate, endDate });
       setData(overview);
     } finally {
       setLoading(false);
     }
-  }, [selectedStoreId]);
+  }, [selectedStoreId, startDate, endDate]);
 
   useEffect(() => {
     loadData();

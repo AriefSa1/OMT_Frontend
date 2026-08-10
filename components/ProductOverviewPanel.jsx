@@ -12,13 +12,15 @@ import { useDateRange } from '../context/DateRangeContext';
 import { formatIDR, formatNumber } from '../lib/utils';
 
 // value: 'number' | 'idr' | 'percent' (rate 0–1)
+// Field disamakan dengan dashboard Shopee "Tinjauan Produk" agar angkanya cocok:
+// Pesanan Dibuat › Total Pembeli = placed_buyers; Penjualan = placed_gmv; dst.
 const CARD_DEFS = [
   { key: 'uv', title: 'Pengunjung', icon: Users, type: 'number', tone: 'slate' },
-  { key: 'pv', title: 'Halaman dilihat', icon: Eye, type: 'number', tone: 'slate' },
-  { key: 'atc_rate', title: 'Add-to-cart rate', icon: ShoppingCart, type: 'percent', tone: 'amber', tip: 'Persentase pengunjung yang memasukkan produk ke keranjang.' },
-  { key: 'placed_orders', title: 'Pesanan dibuat', icon: PackageCheck, type: 'number', tone: 'rose' },
-  { key: 'confirmed_gmv', title: 'GMV dikonfirmasi', icon: Wallet, type: 'idr', tone: 'emerald' },
-  { key: 'uv_to_confirmed_buyers_rate', title: 'Konversi', icon: Percent, type: 'percent', tone: 'emerald', tip: 'Pengunjung yang menjadi pembeli terkonfirmasi.' },
+  { key: 'pv', title: 'Halaman Produk Dilihat', icon: Eye, type: 'number', tone: 'slate' },
+  { key: 'atc_rate', title: 'Rasio ke Keranjang', icon: ShoppingCart, type: 'percent', tone: 'amber', tip: 'Persentase pengunjung yang menambah produk ke keranjang.' },
+  { key: 'placed_buyers', title: 'Pesanan Dibuat (Pembeli)', icon: PackageCheck, type: 'number', tone: 'rose', tip: 'Total pembeli yang membuat pesanan — sama dengan Shopee: Pesanan Dibuat › Total Pembeli.' },
+  { key: 'placed_gmv', title: 'Penjualan Dibuat', icon: Wallet, type: 'idr', tone: 'emerald', tip: 'Nilai penjualan dari pesanan yang dibuat (Shopee: Pesanan Dibuat › Penjualan).' },
+  { key: 'uv_to_placed_buyers_rate', title: 'Konversi', icon: Percent, type: 'percent', tone: 'emerald', tip: 'Pengunjung yang menjadi pembeli (tahap Pesanan Dibuat).' },
 ];
 
 const TREND_METRICS = [
@@ -47,7 +49,7 @@ function toTrend(ratio) {
 
 export default function ProductOverviewPanel() {
   const { selectedStoreId } = useStore();
-  const { startDate, endDate } = useDateRange();
+  const { startDate, endDate, shopeePeriod } = useDateRange();
   const [overview, setOverview] = useState(null);
   const [series, setSeries] = useState({});
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export default function ProductOverviewPanel() {
     (async () => {
       setLoading(true);
       setMessage('');
-      const params = { storeId: selectedStoreId || null, startDate, endDate };
+      const params = { storeId: selectedStoreId || null, startDate, endDate, period: shopeePeriod || undefined };
       try {
         const [ov, tr] = await Promise.all([
           fetchProductOverview(params),
@@ -80,7 +82,7 @@ export default function ProductOverviewPanel() {
       }
     })();
     return () => { cancelled = true; };
-  }, [selectedStoreId, startDate, endDate]);
+  }, [selectedStoreId, startDate, endDate, shopeePeriod]);
 
   const activeMetric = TREND_METRICS.find((m) => m.key === metricKey) || TREND_METRICS[0];
   const chartData = useMemo(() => {
@@ -122,6 +124,12 @@ export default function ProductOverviewPanel() {
           );
         })}
       </div>
+
+      <p className="text-[11px] leading-5 text-slate-500">
+        Angka disamakan dengan dashboard Shopee “Tinjauan Produk”. Preset dipetakan ke jendela Shopee:
+        Hari ini→<b>real_time</b>, Kemarin→<b>yesterday</b>, 7/30 hari→<b>past7/30days</b>, Bulan ini→<b>month</b>.
+        Endpoint ini period-locked, jadi rentang <b>Custom</b> hanya dibulatkan ke 7/30 hari (tak presisi).
+      </p>
 
       {/* Grafik tren */}
       <section className="surface p-5">

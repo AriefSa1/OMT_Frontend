@@ -48,6 +48,18 @@ export const DATE_PRESETS = [
   { key: 'custom', label: 'Custom' },
 ];
 
+// Nilai `period` PERSIS yang dipakai dashboard Shopee (product/overview & metric-trends).
+// Endpoint itu period-locked (mengabaikan start_time/end_time), jadi angka hanya cocok
+// bila period-nya sama. 'custom' → null: backend menurunkan dari rentang (past7days/past30days).
+export const PRESET_TO_SHOPEE_PERIOD = {
+  today: 'real_time',
+  yesterday: 'yesterday',
+  '7d': 'past7days',
+  '30d': 'past30days',
+  thismonth: 'month',
+  custom: null,
+};
+
 export function DateRangeProvider({ children }) {
   const [preset, setPresetState] = useState('7d');
   const [range, setRange] = useState(() => rangeForPreset('7d'));
@@ -94,6 +106,8 @@ export function DateRangeProvider({ children }) {
     preset,
     startDate: range.startDate,
     endDate: range.endDate,
+    // Period Shopee eksplisit untuk endpoint yang period-locked (funnel/cross-check).
+    shopeePeriod: PRESET_TO_SHOPEE_PERIOD[preset] ?? null,
     setPreset,
     setCustomRange,
     // Params siap-pakai untuk fungsi lib/api.

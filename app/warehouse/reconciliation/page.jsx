@@ -92,8 +92,8 @@ export default function WarehousePerformancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Performa Marketplace (Gudang)"
-        description="Analisis akurasi rekonsiliasi stok Shopee vs Gudang, pemetaan lokasi rak, performa tim gudang, dan mitigasi risiko selisih SKU."
+        title="Rekonsiliasi Stok"
+        description="Akurasi stok Shopee vs Gudang, deteksi selisih SKU, dan performa tim gudang."
         actions={
           <div className="flex items-center gap-2">
             <button

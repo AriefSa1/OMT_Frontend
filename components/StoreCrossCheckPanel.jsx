@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GitCompareArrows, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
-import { fetchMarketplacePerformance, fetchProductOverview } from '../lib/api';
+import { fetchMarketplacePerformance, fetchProductOverview, fetchShopeeAds } from '../lib/api';
 import { formatIDR, formatNumber } from '../lib/utils';
 import { useStore } from '../context/StoreContext';
 import { useDateRange } from '../context/DateRangeContext';
@@ -31,9 +31,10 @@ function DiffPill({ shopee, gudang, money = false }) {
 
 export default function StoreCrossCheckPanel() {
   const { selectedStore } = useStore();
-  const { startDate, endDate } = useDateRange();
+  const { startDate, endDate, shopeePeriod } = useDateRange();
   const [gudangRow, setGudangRow] = useState(null);
   const [shopeeMetrics, setShopeeMetrics] = useState(null);
+  const [shopeeAds, setShopeeAds] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -44,22 +45,25 @@ export default function StoreCrossCheckPanel() {
     setLoading(true);
     setMessage('');
     try {
-      const [mp, ov] = await Promise.all([
+      const [mp, ov, ads] = await Promise.all([
         fetchMarketplacePerformance({ startDate, endDate }),
-        fetchProductOverview({ storeId: selectedStore?.storeId || null, startDate, endDate }),
+        fetchProductOverview({ storeId: selectedStore?.storeId || null, startDate, endDate, period: shopeePeriod || undefined }),
+        fetchShopeeAds({ storeId: selectedStore?.storeId || null, startDate, endDate }).catch(() => null),
       ]);
       const row = (mp?.rows || []).find((r) => String(r.id) === String(mpId)) || null;
       setGudangRow(row);
       setShopeeMetrics(ov?.metrics || null);
+      setShopeeAds(ads || null);
       if (!row) setMessage('Marketplace terpetakan tidak ditemukan di data Gudang untuk rentang ini.');
     } catch (err) {
       setGudangRow(null);
       setShopeeMetrics(null);
+      setShopeeAds(null);
       setMessage(`Gagal memuat cross-check: ${err?.message || 'kesalahan tak terduga'}`);
     } finally {
       setLoading(false);
     }
-  }, [mpId, selectedStore?.storeId, startDate, endDate]);
+  }, [mpId, selectedStore?.storeId, startDate, endDate, shopeePeriod]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -85,7 +89,27 @@ export default function StoreCrossCheckPanel() {
   const shopeeOrders = metricValue(shopeeMetrics, 'placed_orders');
   const gudangOmzet = gudangRow?.orderAmount || 0;
   const gudangOrders = gudangRow?.orderCount || 0;
-  const profitLoss = gudangRow?.profitLoss || 0;
+  // "Harga beli" masuk ke spentAmount (HPP + biaya) dari Gudang. Laba/rugi = omzet −
+  // HPP(incl. harga beli) − iklan − retur. profitLoss dari Gudang adalah nilai
+  // otoritatifnya; bila 0 tapi komponen ada, hitung sebagai fallback transparan.
+  const gudangHpp = gudangRow?.spentAmount || 0;      // termasuk harga beli
+  const gudangAds = gudangRow?.adsTotal || 0;
+  const gudangReturn = gudangRow?.returnAmount || 0;
+  const profitAuthoritative = gudangRow ? Number(gudangRow.profitLoss) : 0;
+  const profitComputed = gudangOmzet - gudangHpp - gudangAds - gudangReturn;
+  const profitLoss = (gudangRow && profitAuthoritative !== 0) ? profitAuthoritative : profitComputed;
+
+  // --- Estimasi laba/rugi sisi Shopee ---
+  // Shopee tak tahu HPP/retur → pinjam dari Gudang, DISKALAKAN per-pesanan (karena
+  // omzet Shopee ≠ Gudang). Iklan pakai belanja iklan Shopee (real). Hasil = ESTIMASI.
+  const shopeeAdSpend = Number(shopeeAds?.totalSpend) || 0;
+  const perOrderHpp = gudangOrders > 0 ? gudangHpp / gudangOrders : 0;
+  const perOrderReturn = gudangOrders > 0 ? gudangReturn / gudangOrders : 0;
+  const shopeeHppEst = perOrderHpp * shopeeOrders;
+  const shopeeReturnEst = perOrderReturn * shopeeOrders;
+  const canShopeeProfit = Boolean(gudangRow) && gudangOrders > 0 && shopeeOrders > 0;
+  const shopeeProfit = shopeeGmv - shopeeHppEst - shopeeAdSpend - shopeeReturnEst;
+  const estTitle = 'Estimasi: biaya per-pesanan Gudang diskalakan ke jumlah pesanan Shopee';
 
   return (
     <section className="surface p-5">
@@ -125,19 +149,46 @@ export default function StoreCrossCheckPanel() {
               <td className="px-3 py-2.5 text-right">{!loading && gudangRow && <DiffPill shopee={shopeeOrders} gudang={gudangOrders} />}</td>
             </tr>
             <tr>
-              <td className="px-3 py-2.5 font-medium text-slate-700">Laba/rugi (Gudang)</td>
+              <td className="px-3 py-2.5 text-slate-600">HPP + biaya <span className="text-slate-400">(termasuk harga beli)</span></td>
+              <td className="px-3 py-2.5 text-right text-slate-500" title={estTitle}>{loading ? '…' : canShopeeProfit ? `≈ − ${formatIDR(shopeeHppEst)}` : 'N/A'}</td>
+              <td className="px-3 py-2.5 text-right text-slate-700">{loading ? '…' : gudangRow ? `− ${formatIDR(gudangHpp)}` : '—'}</td>
               <td className="px-3 py-2.5 text-right text-slate-400">—</td>
-              <td className={`px-3 py-2.5 text-right font-semibold ${profitLoss >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{loading ? '…' : formatIDR(profitLoss)}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-2.5 text-slate-600">Biaya iklan</td>
+              <td className="px-3 py-2.5 text-right text-slate-700">{loading ? '…' : shopeeAds ? `− ${formatIDR(shopeeAds.totalSpend)}` : '—'}</td>
+              <td className="px-3 py-2.5 text-right text-slate-700">{loading ? '…' : gudangRow ? `− ${formatIDR(gudangAds)}` : '—'}</td>
+              <td className="px-3 py-2.5 text-right">{!loading && gudangRow && shopeeAds && <DiffPill shopee={shopeeAds.totalSpend} gudang={gudangAds} money />}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-2.5 text-slate-600">Retur</td>
+              <td className="px-3 py-2.5 text-right text-slate-500" title={estTitle}>{loading ? '…' : canShopeeProfit ? `≈ − ${formatIDR(shopeeReturnEst)}` : 'N/A'}</td>
+              <td className="px-3 py-2.5 text-right text-slate-700">{loading ? '…' : gudangRow ? `− ${formatIDR(gudangReturn)}` : '—'}</td>
               <td className="px-3 py-2.5 text-right text-slate-400">—</td>
+            </tr>
+            <tr className="border-t-2 border-slate-200">
+              <td className="px-3 py-2.5 font-semibold text-slate-800">Laba / rugi</td>
+              <td className={`px-3 py-2.5 text-right font-bold ${shopeeProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`} title={`${estTitle}. HPP dipinjam dari Gudang; iklan = belanja iklan Shopee.`}>
+                {loading ? '…' : canShopeeProfit ? `≈ ${formatIDR(shopeeProfit)}` : 'N/A'}
+              </td>
+              <td className={`px-3 py-2.5 text-right font-bold ${profitLoss >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{loading ? '…' : gudangRow ? formatIDR(profitLoss) : '—'}</td>
+              <td className="px-3 py-2.5 text-right">{!loading && canShopeeProfit && <DiffPill shopee={shopeeProfit} gudang={profitLoss} money />}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
+      {!loading && !gudangRow && (
+        <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600">
+          Belum ada baris Gudang untuk marketplace ini pada rentang terpilih — coba perlebar rentang tanggal (mis. 30 hari).
+        </p>
+      )}
+
       <p className="mt-3 text-[11px] leading-5 text-slate-500">
-        Definisi bisa sedikit berbeda: “Omzet” Shopee = GMV dikonfirmasi (product overview),
-        “Pesanan” = pesanan dibuat; sedangkan Gudang menghitung dari pencatatannya sendiri.
-        Selisih besar (&gt;5%) layak ditelusuri. Laba/rugi hanya tersedia dari sisi Gudang.
+        Laba/rugi Gudang = <b>Omzet − (HPP termasuk harga beli) − Iklan − Retur</b> dari pencatatan Gudang.
+        Kolom Shopee = <b>estimasi</b> (tanda ≈): Shopee tak menyimpan HPP/retur, jadi keduanya <b>dipinjam
+        dari Gudang lalu diskalakan per-pesanan</b> ke jumlah pesanan Shopee; iklan memakai belanja iklan
+        Shopee sebenarnya. Karena omzet Shopee (GMV dikonfirmasi) beda definisi dgn Gudang, angka Shopee bersifat perkiraan.
       </p>
     </section>
   );
