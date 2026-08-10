@@ -7,8 +7,8 @@ import { fetchConnectionStatus, triggerSyncAndPoll } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
 import { useClickOutside, useTrickleProgress } from '../lib/hooks';
-import StatusBadge from './StatusBadge';
 import ProgressBar from './ProgressBar';
+import { ConnectionStatusPill } from './ConnectionStatus';
 
 // Label fase mengikuti urutan pipeline nyata di backend: katalog Shopee & Iklan berjalan
 // berbarengan lebih dulu (bagian terberat), lalu rekonsiliasi gudang. Ditampilkan sebagai
@@ -53,7 +53,6 @@ export default function Navbar({ onMenu }) {
     }
   };
 
-  const shopeeMeta = status?.snapshots?.shopee;
   const currentDisplayName = selectedStore?.storeName || (stores.length === 1 ? stores[0]?.storeName : null) || (stores.length > 1 && !selectedStoreId ? 'Semua Toko Terhubung' : status?.connections?.shopee?.storeName || 'Toko belum terhubung');
 
   return (
@@ -160,7 +159,7 @@ export default function Navbar({ onMenu }) {
           </div>
 
           <div className="hidden sm:block">
-            <StatusBadge status={shopeeMeta?.status || 'Tidak Tersedia'} compact />
+            <ConnectionStatusPill />
           </div>
         </div>
 
