@@ -10,7 +10,35 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import ServerWakeBanner from '../components/ServerWakeBanner';
 
+// Jaring pengaman: setelah deploy, HTML lama yang ter-cache bisa merujuk chunk JS
+// yang sudah tak ada (404) → ChunkLoadError. Muat ulang SEKALI untuk menarik HTML
+// segar; dijaga anti-loop (maks sekali per 30 detik lewat sessionStorage).
+function useChunkErrorRecovery() {
+  useEffect(() => {
+    const KEY = 'chunk_reload_at';
+    const isChunkError = (msg = '', name = '') =>
+      name === 'ChunkLoadError' || /ChunkLoadError/i.test(msg) || /Loading chunk [\w-]+ failed/i.test(msg);
+    const onError = (event) => {
+      const msg = event?.message || event?.reason?.message || '';
+      const name = event?.error?.name || event?.reason?.name || '';
+      if (!isChunkError(msg, name)) return;
+      const last = Number(sessionStorage.getItem(KEY) || 0);
+      if (Date.now() - last > 30000) {
+        sessionStorage.setItem(KEY, String(Date.now()));
+        window.location.reload();
+      }
+    };
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onError);
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onError);
+    };
+  }, []);
+}
+
 export default function AppShell({ children }) {
+  useChunkErrorRecovery();
   return (
     <AuthProvider>
       <StoreProvider>
