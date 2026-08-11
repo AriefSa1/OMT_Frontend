@@ -45,10 +45,22 @@ const NAV_GROUPS = [
   },
 ];
 
+// Semua href navigasi — dipakai untuk menentukan "prefix terpanjang yang menang",
+// supaya induk tidak ikut aktif saat berada di anak yang punya item sendiri.
+const ALL_HREFS = [...NAV_GROUPS.flatMap((group) => group.items.map((item) => item.href)), '/admin'];
+
 function isActivePath(pathname, href) {
-  if (href === '/') return pathname === '/';
-  if (href === '/shopee') return pathname === '/shopee';
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // Cocok sebagai prefix induk — tapi JANGAN aktifkan bila ada item lain yang lebih
+  // spesifik (href lebih dalam) yang juga cocok dengan path sekarang. Ini mencegah
+  // "Inventaris Stok" (/warehouse) ikut aktif saat di "Performa Marketplace"
+  // (/warehouse/performance) atau "Rekonsiliasi Stok" (/warehouse/reconciliation).
+  return !ALL_HREFS.some((other) =>
+    other !== href
+    && other.startsWith(`${href}/`)
+    && (pathname === other || pathname.startsWith(`${other}/`))
+  );
 }
 
 export default function Sidebar({ mobile = false, onClose }) {
