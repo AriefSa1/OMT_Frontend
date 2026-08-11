@@ -4,10 +4,19 @@
 > ter-fix di Next 15/16. **JANGAN `npm audit fix --force`** (memaksa next@16, breaking parah).
 > Target: **Next 15 (stabil)** — lompatan paling kecil yang menutup vuln.
 
-## ✅ STATUS: SELESAI (branch `chore/next15-upgrade`, 2026-08-11)
+## ✅ STATUS: SELESAI + TERUJI RUNTIME (branch `chore/next15-upgrade`, 2026-08-11)
 
-Terpasang & build hijau (22/22 route), `npm audit` = **0 vulnerabilities**, `/login`
-render bersih tanpa error console (tak ada hydration mismatch React 19).
+Terpasang & build hijau (22/22 route), `npm audit` = **0 vulnerabilities**.
+
+**Uji runtime (via dev-auth-bypass, backend+frontend lokal):** Beranda, /ads, /shopee
+(katalog + Next/Image), /product/[id], /warehouse/performance, /admin — semua render, **0
+error console**. Chart recharts terbukti hidup (dashboard: area chart 2 curve + 1 area, line
+chart 3 dot + sumbu ganda). `MarketplacePerformancePanel` (gudang lintas kanal) & tabel
+kampanye iklan render dengan data live.
+
+**1 isu ditemukan & diperbaiki:** `app/product/[id]/page.jsx` mengakses `params.id` langsung
+→ Next 15 warn (`params` kini Promise). Fix: unwrap dengan `React.use(params)` (client
+component). Satu-satunya route dinamis; tak ada akses `params`/`searchParams` langsung lain.
 
 Versi final: `next@15.5.23`, `react@19.2.8`, `react-dom@19.2.8`, `lucide-react@1.31.0`,
 `recharts@2.15.4` (tetap 2.x — kompatibel React 19, **tak perlu** naik ke recharts 3).

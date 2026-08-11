@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3, ClipboardPlus, Layers, RefreshCw, Save, UsersRound } from 'lucide-react';
@@ -23,7 +23,8 @@ export default function ProductDetailPage({ params }) {
   const [competitors, setCompetitors] = useState(null);
   const [loadingCompetitors, setLoadingCompetitors] = useState(false);
   const [message, setMessage] = useState('');
-  const itemId = params.id;
+  // Next 15: `params` diteruskan sebagai Promise → unwrap dengan React.use()
+  const { id: itemId } = use(params);
 
   const loadProduct = useCallback(async () => {
     setLoading(true);
