@@ -76,7 +76,7 @@ async function runProbe() {
   return inFlight;
 }
 
-function useConnectionHealth() {
+export function useConnectionHealth() {
   const [snap, setSnap] = useState(sharedState);
   useEffect(() => {
     subscribers.add(setSnap);
