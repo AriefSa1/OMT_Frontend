@@ -21,6 +21,7 @@ import {
 import PageHeader from '../../../components/PageHeader';
 import MetricCard from '../../../components/MetricCard';
 import StatusBadge from '../../../components/StatusBadge';
+import MarketplacePerformancePanel from '../../../components/MarketplacePerformancePanel';
 import { fetchMarketplacePerformance } from '../../../lib/api';
 import { formatIDR, formatNumber } from '../../../lib/utils';
 import { useStore } from '../../../context/StoreContext';
@@ -85,6 +86,10 @@ export default function MarketplacePerformancePage() {
         description="Analisis penjualan, profitabilitas, dan retur berdasarkan data gudang."
         icon={LineChart}
       />
+
+      {/* Panel (Gudang) — berfilter range (DateRangePicker) + tab kanal; picker-nya
+          mengendalikan useDateRange() yang sama, jadi ikut memfilter KPI & tabel di bawah. */}
+      <MarketplacePerformancePanel />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
