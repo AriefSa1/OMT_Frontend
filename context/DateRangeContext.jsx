@@ -49,14 +49,17 @@ export const DATE_PRESETS = [
 ];
 
 // Nilai `period` PERSIS yang dipakai dashboard Shopee (product/overview & metric-trends).
-// Endpoint itu period-locked (mengabaikan start_time/end_time), jadi angka hanya cocok
-// bila period-nya sama. 'custom' → null: backend menurunkan dari rentang (past7days/past30days).
+// Endpoint itu period-locked (mengabaikan start_time/end_time) dan HANYA menerima enum:
+// real_time | yesterday | past7days | past30days. Tak ada nilai "bulan kalender" — Shopee
+// menolak 'month'/'this_month'/dll ("err:invalid param"). Karena itu 'thismonth' → null
+// (seperti 'custom'): backend menurunkan past7days/past30days dari span tanggal bulan
+// berjalan, sementara panel berbasis rentang (order/GMV) tetap memakai tanggal kalender.
 export const PRESET_TO_SHOPEE_PERIOD = {
   today: 'real_time',
   yesterday: 'yesterday',
   '7d': 'past7days',
   '30d': 'past30days',
-  thismonth: 'month',
+  thismonth: null,
   custom: null,
 };
 

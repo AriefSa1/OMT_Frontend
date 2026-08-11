@@ -127,8 +127,9 @@ export default function ProductOverviewPanel() {
 
       <p className="text-[11px] leading-5 text-slate-500">
         Angka disamakan dengan dashboard Shopee “Tinjauan Produk”. Preset dipetakan ke jendela Shopee:
-        Hari ini→<b>real_time</b>, Kemarin→<b>yesterday</b>, 7/30 hari→<b>past7/30days</b>, Bulan ini→<b>month</b>.
-        Endpoint ini period-locked, jadi rentang <b>Custom</b> hanya dibulatkan ke 7/30 hari (tak presisi).
+        Hari ini→<b>real_time</b>, Kemarin→<b>yesterday</b>, 7/30 hari→<b>past7/30days</b>. Shopee tak punya
+        jendela “bulan kalender”, jadi <b>Bulan ini</b> & <b>Custom</b> dibulatkan ke past7/past30days
+        menurut lebar rentang (tak presisi) — endpoint ini period-locked.
       </p>
 
       {/* Grafik tren */}
