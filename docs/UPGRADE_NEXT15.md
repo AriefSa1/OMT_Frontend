@@ -1,8 +1,43 @@
-# Rencana Upgrade Next.js 14 → 15 (menutup 2 high-severity vuln)
+# Upgrade Next.js 14 → 15 (menutup high-severity vuln)
 
 > Tujuan: menutup advisory `next` + `postcss` (DoS/SSRF/cache-poisoning) yang hanya
 > ter-fix di Next 15/16. **JANGAN `npm audit fix --force`** (memaksa next@16, breaking parah).
 > Target: **Next 15 (stabil)** — lompatan paling kecil yang menutup vuln.
+
+## ✅ STATUS: SELESAI + TERUJI RUNTIME (branch `chore/next15-upgrade`, 2026-08-11)
+
+Terpasang & build hijau (22/22 route), `npm audit` = **0 vulnerabilities**.
+
+**Uji runtime (via dev-auth-bypass, backend+frontend lokal):** Beranda, /ads, /shopee
+(katalog + Next/Image), /product/[id], /warehouse/performance, /admin — semua render, **0
+error console**. Chart recharts terbukti hidup (dashboard: area chart 2 curve + 1 area, line
+chart 3 dot + sumbu ganda). `MarketplacePerformancePanel` (gudang lintas kanal) & tabel
+kampanye iklan render dengan data live.
+
+**1 isu ditemukan & diperbaiki:** `app/product/[id]/page.jsx` mengakses `params.id` langsung
+→ Next 15 warn (`params` kini Promise). Fix: unwrap dengan `React.use(params)` (client
+component). Satu-satunya route dinamis; tak ada akses `params`/`searchParams` langsung lain.
+
+Versi final: `next@15.5.23`, `react@19.2.8`, `react-dom@19.2.8`, `lucide-react@1.31.0`,
+`recharts@2.15.4` (tetap 2.x — kompatibel React 19, **tak perlu** naik ke recharts 3).
+
+**Temuan penting (premis awal ternyata usang):** upgrade ke Next 15 menutup vuln *kode Next
+sendiri* (DoS/SSRF/cache-poisoning dari Next 14), TETAPI muncul advisory **baru** (CVE-2026-*)
+di dependensi transitif yang di-bundle Next — **postcss** (XSS/path-traversal via
+sourceMappingURL) & **sharp/libvips** — yang menurut `npm audit` hanya tuntas di next@16
+(breaking). Solusi tanpa naik ke Next 16: **`overrides`** di `package.json` memaksa versi
+patched (`postcss` → 8.5.26 via `$postcss`, `sharp` → 0.35.3). Hasil akhir 0 vuln.
+
+**Yang MASIH perlu dilakukan (runtime, hanya bisa dengan sesi login):**
+1. Uji visual SEMUA chart recharts saat login (SalesChart, AdsTrendChart, CategoryPieChart,
+   ProductOverviewPanel, MarketplacePerformancePanel) — React 19 paling mungkin memengaruhi ini.
+2. Buka semua halaman terproteksi & cek Console (#418/#423 hydration).
+3. Setelah lolos: merge ke `dev` → deploy + **REBUILD Hostinger** + purge cache (DEPLOY_HOSTINGER.md).
+
+> Rencana asli di bawah tetap dipertahankan sebagai catatan proses.
+
+---
+
 
 ## Kondisi saat ini
 - `next ^14.2.1` (14.2.35), `react/react-dom ^18.3.1`, `recharts ^2.12.3`, `lucide-react ^0.359`, `tailwindcss ^3.4`.
