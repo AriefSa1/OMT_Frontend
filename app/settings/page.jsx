@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
-import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerShopeeSync, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
+import ConnectionStatus from '../../components/ConnectionStatus';
+import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerSyncAndPoll, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
 import { useStore } from '../../context/StoreContext';
 
@@ -187,8 +188,8 @@ export default function SettingsPage() {
   const handleSyncStore = async (storeId) => {
     setSyncingStoreId(storeId);
     try {
-      const res = await triggerShopeeSync(storeId);
-      setMessage(res.message || (res.success ? 'Sinkronisasi toko berhasil.' : 'Sinkronisasi gagal.'));
+      const res = await triggerSyncAndPoll({ storeId });
+      setMessage(res.pending ? 'Sinkronisasi berjalan di latar belakang…' : (res.success ? 'Sinkronisasi toko berhasil.' : (res.error || 'Sinkronisasi gagal.')));
       await refreshStores();
       await loadData();
     } catch (err) {
@@ -226,38 +227,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Connection status banner */}
-      <section className="surface overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Status koneksi sumber data</h2>
-          <p className="mt-1 text-xs text-slate-500">Status menunjukkan konfigurasi otentikasi serta kesegaran snapshot data terakhir.</p>
-        </div>
-        <div className="grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          <div className="p-5">
-            <p className="text-xs font-medium text-slate-500">Shopee Multi-Toko</p>
-            <div className="mt-2">
-              <StatusBadge status={stores.some((s) => s.isActive) ? 'Segar' : 'Tidak Tersedia'} />
-            </div>
-            <p className="mt-3 text-xs text-slate-600 font-medium">{stores.length} Toko Terhubung</p>
-          </div>
-          <div className="p-5">
-            <p className="text-xs font-medium text-slate-500">Shopee Ads & Performance</p>
-            <div className="mt-2">
-              <StatusBadge status={connections?.snapshots?.ads?.status || 'Tidak Tersedia'} />
-            </div>
-            <p className="mt-3 text-xs text-slate-600">Data: {formatDataTime(connections?.snapshots?.ads?.dataAsOf)}</p>
-          </div>
-          <div className="p-5">
-            <p className="text-xs font-medium text-slate-500">PDC Gudang (Warehouse API)</p>
-            <div className="mt-2">
-              <StatusBadge status={connections?.snapshots?.warehouse?.status || 'Tidak Tersedia'} />
-            </div>
-            <p className="mt-3 text-xs text-slate-600">
-              {connections?.snapshots?.warehouse?.status === 'ONLINE' ? 'Terhubung (PDC Gudang)' : `Data: ${formatDataTime(connections?.snapshots?.warehouse?.dataAsOf)}`}
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Status koneksi realtime (Toko / Gudang / AI) */}
+      <ConnectionStatus />
 
       {/* Multi-Store Shopee Connection Section */}
       <section className="surface p-5 space-y-4">

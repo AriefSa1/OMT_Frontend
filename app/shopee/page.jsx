@@ -9,7 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/Pagination';
 import VariationTable from '../../components/VariationTable';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
-import { fetchProductDetail, fetchShopeeCatalog, triggerShopeeSync } from '../../lib/api';
+import { fetchProductDetail, fetchShopeeCatalog, triggerSyncAndPoll } from '../../lib/api';
 import { useDebouncedValue, useSnapshotRefresh } from '../../lib/hooks';
 import { formatIDR, formatNumber, formatPercent } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
@@ -87,7 +87,7 @@ export default function ShopeeCatalogPage() {
 
   const sync = async () => {
     setSyncing(true);
-    await triggerShopeeSync(selectedStoreId);
+    await triggerSyncAndPoll({ storeId: selectedStoreId });
     await loadCatalog();
     setSyncing(false);
   };

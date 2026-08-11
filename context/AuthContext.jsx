@@ -16,31 +16,46 @@ export function AuthProvider({ children }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Auto-login developer HANYA aktif di build non-produksi. Next meng-inline
+    // process.env.NODE_ENV: 'development' saat `next dev`, 'production' saat build.
+    // Jadi di Hostinger (produksi) blok dev ini MATI total → user wajib login.
+    const IS_DEV = process.env.NODE_ENV !== 'production';
+
     const initAuth = async () => {
       setLoading(true);
       if (typeof window !== 'undefined') {
         const savedToken = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
+        let authed = false;
 
         if (savedToken) {
           setToken(savedToken);
           if (savedUser) {
-            try {
-              setUser(JSON.parse(savedUser));
-            } catch (e) {
-              console.error('Failed to parse saved user JSON');
-            }
+            try { setUser(JSON.parse(savedUser)); } catch { /* abaikan */ }
           }
-
-          // Verify token with backend
           const meRes = await getMe();
           if (meRes && meRes.success && meRes.user) {
             setUser(meRes.user);
             localStorage.setItem('user', JSON.stringify(meRes.user));
-          } else if (!meRes?.success) {
-            logoutSilently();
+            authed = true;
+          } else {
+            logoutSilently(); // token tidak valid → bersihkan
           }
         }
+
+        // DEV ONLY: bila belum terautentikasi, auto-login sebagai admin.
+        // PENTING: TIDAK menyimpan token — biar request dikirim TANPA Authorization
+        // sehingga di-handle oleh dev-bypass backend (yang juga gated ke non-produksi).
+        // Cookie penanda diset agar middleware Next tidak melempar ke /login.
+        if (!authed && IS_DEV) {
+          const meRes = await getMe(); // tanpa token → backend dev-bypass balikan admin
+          const devUser = (meRes?.success && meRes.user)
+            ? meRes.user
+            : { id: 'dev-admin', name: 'Mode Developer (Admin)', email: 'admin@dev.local', role: 'ADMIN' };
+          setUser(devUser);
+          document.cookie = 'auth_token=dev; path=/; max-age=86400; SameSite=Lax';
+        }
+        // Produksi tanpa token valid → user tetap null → diarahkan ke /login.
       }
       setLoading(false);
     };

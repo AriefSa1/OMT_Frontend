@@ -1,5 +1,18 @@
 'use client';
 
+import { useConnectionHealth } from './ConnectionStatus';
+
+// Peta sumber snapshot → kunci koneksi live (SOURCES di ConnectionStatus).
+// Dipakai agar badge kesegaran tidak menampilkan "Dijeda" saat koneksi sumbernya aktif.
+const SOURCE_TO_CONNECTION = {
+  SHOPEE_SNAPSHOT: 'shopee',
+  SHOPEE_ADS_SNAPSHOT: 'shopee',
+  KATALOG_SHOPEE: 'shopee',
+  IKLAN_SHOPEE: 'shopee',
+  WAREHOUSE_SNAPSHOT: 'warehouse',
+  GUDANG: 'warehouse',
+};
+
 const STATUS_STYLES = {
   Segar: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   Tertunda: 'border-amber-200 bg-amber-50 text-amber-800',
@@ -46,10 +59,19 @@ export default function StatusBadge({ status, compact = false }) {
 }
 
 export function DataSourceNote({ meta, className = '' }) {
+  // Baca status koneksi live (poller bersama — tak menambah request).
+  const { data } = useConnectionHealth();
   if (!meta) return null;
+  const rawStatus = meta.status || meta.freshness;
+  // Selaraskan dengan status koneksi di navbar: kalau sumber datanya TERHUBUNG,
+  // jangan tampilkan "Dijeda" (Tertunda) yang menyesatkan — koneksi aktif berarti
+  // sinkron berjalan. Freshness lain (Segar/Gagal/Perlu Koneksi) dibiarkan apa adanya.
+  const connKey = SOURCE_TO_CONNECTION[meta.source];
+  const connected = connKey && data?.[connKey]?.status === 'connected';
+  const status = connected && rawStatus === 'Tertunda' ? 'Segar' : rawStatus;
   return (
     <div className={`flex flex-wrap items-center gap-2 text-xs text-slate-500 ${className}`}>
-      <StatusBadge status={meta.status || meta.freshness} compact />
+      <StatusBadge status={status} compact />
       <span>Sumber: {formatSource(meta.source)}</span>
       <span>Data: {formatDataTime(meta.dataAsOf)}</span>
     </div>

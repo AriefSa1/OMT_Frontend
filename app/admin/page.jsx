@@ -56,7 +56,7 @@ import {
   resetAdminUserPassword,
   toggleAdminRegistrationCode,
   toggleStoreActive,
-  triggerShopeeSync,
+  triggerSyncAndPoll,
   updateAdminUserRole
 } from '../../lib/api';
 
@@ -322,7 +322,7 @@ export default function AdminPage() {
   const handleSyncStore = async (storeId) => {
     setSyncingStoreId(storeId);
     try {
-      const res = await triggerShopeeSync(storeId);
+      const res = await triggerSyncAndPoll({ storeId });
       if (res.success) {
         showToast(res.message || 'Sinkronisasi toko berhasil!');
         await loadAdminData();
