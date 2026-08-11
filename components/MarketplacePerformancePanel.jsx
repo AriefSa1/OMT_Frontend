@@ -1,18 +1,22 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Store, TrendingUp, TrendingDown } from 'lucide-react';
+import { Briefcase, RefreshCw, Search, TrendingDown, TrendingUp } from 'lucide-react';
 import DateRangePicker from './DateRangePicker';
 import EmptyState from './EmptyState';
 import { fetchMarketplacePerformance } from '../lib/api';
 import { formatIDR, formatNumber } from '../lib/utils';
 import { useDateRange } from '../context/DateRangeContext';
 
-function typeBadge(type) {
-  const t = String(type || '').toLowerCase();
-  if (t === 'shopee') return { label: 'Shopee', cls: 'bg-orange-50 text-orange-700 border-orange-200' };
-  if (t === 'tiktok') return { label: 'TikTok', cls: 'bg-slate-900 text-white border-slate-900' };
-  return { label: type || '—', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+// Warna badge kanal — blok padat mengikuti gaya "Detail Performa Toko".
+function platformBadgeClass(type) {
+  switch (String(type || '').toLowerCase()) {
+    case 'tiktok': return 'bg-slate-900 text-white';
+    case 'shopee': return 'bg-orange-500 text-white';
+    case 'tokopedia': return 'bg-green-500 text-white';
+    case 'lazada': return 'bg-blue-600 text-white';
+    default: return 'bg-slate-200 text-slate-700';
+  }
 }
 
 const CHANNELS = [
@@ -28,6 +32,7 @@ export default function MarketplacePerformancePanel() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [channel, setChannel] = useState('all');
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,7 +57,15 @@ export default function MarketplacePerformancePanel() {
     shopee: rows.filter((r) => (r.type || '').toLowerCase() === 'shopee').length,
     tiktok: rows.filter((r) => (r.type || '').toLowerCase() === 'tiktok').length,
   };
-  const filtered = channel === 'all' ? rows : rows.filter((r) => (r.type || '').toLowerCase() === channel);
+  const byChannel = channel === 'all' ? rows : rows.filter((r) => (r.type || '').toLowerCase() === channel);
+  const filtered = search
+    ? byChannel.filter((r) => {
+        const q = search.toLowerCase();
+        return (r.name || '').toLowerCase().includes(q)
+          || (r.owner || '').toLowerCase().includes(q)
+          || (r.type || '').toLowerCase().includes(q);
+      })
+    : byChannel;
 
   const totals = filtered.reduce((acc, r) => ({
     orderAmount: acc.orderAmount + (r.orderAmount || 0),
@@ -105,53 +118,110 @@ export default function MarketplacePerformancePanel() {
         </section>
       </div>
 
-      {/* Tabel per marketplace */}
-      <section className="surface overflow-hidden">
-        <div className="table-scroll">
-          <table className="w-full text-left text-xs">
-            <thead className="border-y border-slate-200 bg-slate-50 text-slate-500">
+      {/* Tabel per marketplace — gaya "Detail Performa Toko" */}
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold text-slate-800">Detail Performa Toko</h3>
+            <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{filtered.length} Toko</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari toko atau pemilik..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-56 rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              className="rounded-xl border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              title="Muat ulang data"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-5 py-3 font-medium">Marketplace</th>
-                <th className="px-4 py-3 font-medium">Kanal</th>
-                <th className="px-4 py-3 font-medium">Pemilik</th>
-                <th className="px-4 py-3 text-right font-medium">Pesanan</th>
-                <th className="px-4 py-3 text-right font-medium">Item</th>
-                <th className="px-4 py-3 text-right font-medium">Omzet</th>
-                <th className="px-4 py-3 text-right font-medium">Iklan</th>
-                <th className="px-4 py-3 text-right font-medium">Est. profit</th>
-                <th className="px-5 py-3 text-right font-medium">Laba/Rugi</th>
+                <th className="px-6 py-4 font-medium">Toko</th>
+                <th className="px-4 py-4 text-right font-medium">Pesanan</th>
+                <th className="px-4 py-4 text-right font-medium">Barang</th>
+                <th className="px-4 py-4 text-right font-medium">Omzet</th>
+                <th className="px-4 py-4 text-right font-medium">HPP</th>
+                <th className="px-4 py-4 text-right font-medium">Pengeluaran</th>
+                <th className="px-4 py-4 text-right font-medium">Iklan</th>
+                <th className="px-4 py-4 text-right font-medium">Est. profit</th>
+                <th className="px-4 py-4 text-right font-medium">Laba Bersih</th>
+                <th className="px-6 py-4 text-right font-medium">Retur</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan="9" className="px-5 py-8 text-center text-sm text-slate-500">Memuat…</td></tr>
-              ) : filtered.length ? filtered.map((r) => {
-                const badge = typeBadge(r.type);
-                const pos = (r.profitLoss || 0) >= 0;
-                return (
-                  <tr key={`${r.type}-${r.id}`} className="hover:bg-slate-50">
-                    <td className="px-5 py-3">
-                      <span className="flex items-center gap-2 font-semibold text-slate-800">
-                        <Store className="h-3.5 w-3.5 text-slate-400" /> {r.name}
-                      </span>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4">
+                      <div className="h-4 w-32 rounded bg-slate-200"></div>
+                      <div className="mt-2 h-3 w-20 rounded bg-slate-100"></div>
                     </td>
-                    <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badge.cls}`}>{badge.label}</span></td>
-                    <td className="px-4 py-3 text-slate-600">{r.owner || '—'}{r.ownerAlias ? ` (${r.ownerAlias})` : ''}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{formatNumber(r.orderCount)}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{formatNumber(r.itemCount)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatIDR(r.orderAmount)}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{formatIDR(r.adsTotal)}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{formatIDR(r.estimatedProfit)}</td>
-                    <td className={`px-5 py-3 text-right font-semibold ${pos ? 'text-emerald-700' : 'text-rose-700'}`}>{formatIDR(r.profitLoss)}</td>
+                    {Array.from({ length: 9 }).map((__, j) => (
+                      <td key={j} className="px-4 py-4 text-right"><div className="ml-auto h-4 w-16 rounded bg-slate-100"></div></td>
+                    ))}
                   </tr>
-                );
-              }) : (
-                <tr><td colSpan="9" className="px-5 py-10 text-center"><EmptyState title="Belum ada data" message="Tidak ada performa marketplace pada rentang ini." /></td></tr>
+                ))
+              ) : filtered.length ? (
+                filtered.map((r) => {
+                  const pos = (r.profitLoss || 0) >= 0;
+                  return (
+                    <tr key={`${r.type}-${r.id}`} className="group transition-colors hover:bg-slate-50/80">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className={`shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${platformBadgeClass(r.type)}`}>
+                            {r.type}
+                          </span>
+                          <div>
+                            <p className="font-medium text-slate-900 transition-colors group-hover:text-blue-600">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                              <Briefcase className="h-3 w-3" /> {r.owner || '—'}{r.ownerAlias ? ` (${r.ownerAlias})` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatNumber(r.orderCount)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatNumber(r.itemCount)}</td>
+                      <td className="px-4 py-4 text-right font-medium tabular-nums text-slate-900">{formatIDR(r.orderAmount)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-500">{formatIDR(r.itemAmount)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-500">{formatIDR(r.spentAmount)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatIDR(r.adsTotal)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatIDR(r.estimatedProfit)}</td>
+                      <td className="px-4 py-4 text-right tabular-nums">
+                        <span className={`font-medium ${pos ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {r.profitLoss > 0 ? '+' : ''}{formatIDR(r.profitLoss)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right tabular-nums text-rose-500">{r.returnAmount > 0 ? formatIDR(r.returnAmount) : '-'}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="10" className="px-6 py-12 text-center">
+                    <EmptyState title="Belum ada data" message="Tidak ada performa marketplace pada rentang ini." />
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
     </section>
   );
 }
