@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Layers, Megaphone, Settings, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, TrendingUp, X } from 'lucide-react';
+import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Layers, Megaphone, Settings, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, TrendingUp, Wrench, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_GROUPS = [
@@ -25,16 +25,16 @@ const NAV_GROUPS = [
     title: 'Operasional Gudang',
     items: [
       { label: 'Inventaris Stok', href: '/warehouse', icon: Boxes },
-      { label: 'Rekonsiliasi Stok', href: '/warehouse/reconciliation', icon: Layers },
+      { label: 'Rekonsiliasi Stok', href: '/warehouse/reconciliation', icon: Layers, maintenance: true },
       { label: 'Performa Marketplace', href: '/warehouse/performance', icon: TrendingUp },
     ],
   },
   {
     title: 'Rekomendasi & Optimasi',
     items: [
-      { label: 'Aksi & Tugas', href: '/actions', icon: CheckSquare },
-      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge },
-      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles },
+      { label: 'Aksi & Tugas', href: '/actions', icon: CheckSquare, maintenance: true },
+      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge, maintenance: true },
+      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles, maintenance: true },
     ],
   },
   {
@@ -93,7 +93,25 @@ export default function Sidebar({ mobile = false, onClose }) {
             <div className="px-3 text-[10px] font-black tracking-wider text-slate-400 uppercase">
               {group.title}
             </div>
-            {group.items.map(({ label, href, icon: Icon }) => {
+            {group.items.map(({ label, href, icon: Icon, maintenance }) => {
+              if (maintenance) {
+                // Dalam perawatan: tidak bisa diklik (bukan <Link>), diredupkan, diberi
+                // lencana "Perawatan". Rutenya sengaja tetap ada untuk pengembangan.
+                return (
+                  <div
+                    key={href}
+                    aria-disabled="true"
+                    title="Fitur sedang dalam perawatan — belum bisa dibuka."
+                    className="flex h-9 cursor-not-allowed select-none items-center gap-3 rounded-lg px-3 text-xs font-semibold text-slate-400 opacity-70"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-slate-300" />
+                    <span className="flex-1 truncate">{label}</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-600">
+                      <Wrench className="h-2.5 w-2.5" /> Perawatan
+                    </span>
+                  </div>
+                );
+              }
               const active = isActivePath(pathname, href);
               return (
                 <Link
