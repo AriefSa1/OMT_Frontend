@@ -309,6 +309,12 @@ function StatusPanel({ status, loading, onRefresh }) {
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
         <span>Status di atas membaca konfigurasi backend. Request chat di bawah adalah uji koneksi dan generation yang sesungguhnya.</span>
       </div>
+      {status?.memory && status.memory.available === false && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-800">
+          <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
+          <span>Penyimpanan memori tidak aktif: analisa tetap berjalan, tetapi feedback, pencatatan tindakan, dan evaluasi outcome 7/30 hari dinonaktifkan.</span>
+        </div>
+      )}
     </section>
   );
 }
