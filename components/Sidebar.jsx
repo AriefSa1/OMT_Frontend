@@ -33,8 +33,8 @@ const NAV_GROUPS = [
     title: 'Rekomendasi & Optimasi',
     items: [
       { label: 'Aksi & Tugas', href: '/actions', icon: CheckSquare, maintenance: true },
-      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge, maintenance: true },
-      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles, maintenance: true },
+      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge },
+      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles },
     ],
   },
   {
