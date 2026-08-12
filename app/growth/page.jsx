@@ -10,6 +10,7 @@ import RecommendationList from '../../components/RecommendationList';
 import StatusBadge, { DataSourceNote, formatDataTime, formatSource } from '../../components/StatusBadge';
 import { fetchGrowthIntelligence } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
+import AiDeepAnalysis from '../../components/AiDeepAnalysis';
 import { emptyListReason, formatIDR, formatNumber } from '../../lib/utils';
 import { useStore } from '../../context/StoreContext';
 
@@ -69,6 +70,12 @@ export default function GrowthIntelligencePage() {
         </div>
         {data?.generatedAt && <p className="mt-2 text-xs text-slate-500">Dihitung: {formatDataTime(data.generatedAt)}</p>}
       </PageHeader>
+
+      <AiDeepAnalysis
+        title="Wawasan Pertumbuhan AI"
+        subtitle="Peluang tumbuh, risiko, dan jebakan yang harus dihindari — dibaca AI dari data toko."
+        show={['summary', 'growth', 'avoid', 'dataGaps']}
+      />
 
       <Section
         title="Laporan mingguan"
