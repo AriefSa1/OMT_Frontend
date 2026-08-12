@@ -17,6 +17,13 @@ const AREA = {
   TOKO: 'border-emerald-200 bg-emerald-50 text-emerald-700',
 };
 
+// "gemini-3.6-flash" → "Gemini 3.6 Flash"; provider OpenRouter → "OpenRouter".
+function formatModel(model, provider) {
+  if (provider === 'REAL_OPENROUTER_API') return 'OpenRouter';
+  if (!model || model === 'openrouter') return provider === 'REAL_GEMINI_API' ? 'Gemini' : '';
+  return model.replace(/^gemini-/i, 'Gemini ').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function Pill({ children, cls }) {
   return <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${cls || 'border-slate-200 bg-slate-50 text-slate-600'}`}>{children}</span>;
 }
@@ -58,8 +65,14 @@ export default function AiDeepAnalysis({ show = ALL_SECTIONS, title = 'Analisa M
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {state.provider && state.data && (
-            <span className="hidden text-[10px] font-medium text-slate-400 sm:inline">{state.provider === 'REAL_GEMINI_API' ? 'Gemini' : state.provider === 'REAL_OPENROUTER_API' ? 'OpenRouter' : ''}</span>
+          {state.data && formatModel(state.data.model, state.provider) && (
+            <span
+              title={`Model: ${state.data.model || state.provider}`}
+              className="hidden items-center gap-1 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-700 sm:inline-flex"
+            >
+              <Sparkles className="h-3 w-3" />
+              {formatModel(state.data.model, state.provider)}
+            </span>
           )}
           <button
             type="button"
