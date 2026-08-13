@@ -136,7 +136,7 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze, modelRe
           </div>
         </div>
         {validation.canCallHermes && modelReady ? (
-          <button type="button" onClick={onAnalyze} disabled={analysisLoading} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-violet-600 px-3 text-xs font-bold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-400">
+          <button type="button" onClick={onAnalyze} disabled={analysisLoading} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-400">
             {analysisLoading ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Bot className="h-3.5 w-3.5" aria-hidden="true" />}
             {analysisLoading ? 'Sedang menganalisa...' : 'Mulai analisa'}
           </button>
@@ -284,20 +284,20 @@ function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}
         </div>
       </div>
       <div className="space-y-5 p-5">
-        <div className="rounded-lg border border-violet-100 bg-violet-50/60 px-4 py-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-violet-600">Kesimpulan singkat</div>
+        <div className="rounded-lg border border-rose-100 bg-rose-50/60 px-4 py-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Kesimpulan singkat</div>
           <p className="mt-2 text-sm leading-6 text-slate-700">{analysis.executiveVerdict || 'Hermes tidak memberikan kesimpulan.'}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
           <div className="font-semibold text-slate-800">Cara membaca hasil ini</div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3"><div><span className="font-semibold text-violet-700">1. Temuan:</span> apa yang terjadi menurut data.</div><div><span className="font-semibold text-violet-700">2. Penyebab:</span> dugaan yang masih perlu dicek.</div><div><span className="font-semibold text-violet-700">3. Tindakan:</span> langkah kerja yang bisa dicatat.</div></div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3"><div><span className="font-semibold text-rose-700">1. Temuan:</span> apa yang terjadi menurut data.</div><div><span className="font-semibold text-rose-700">2. Penyebab:</span> dugaan yang masih perlu dicek.</div><div><span className="font-semibold text-rose-700">3. Tindakan:</span> langkah kerja yang bisa dicatat.</div></div>
         </div>
         {result.memoryId ? (
           <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span>Apakah analisa ini membantu dan cukup dapat dipercaya untuk ditindaklanjuti?</span>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
-                {FEEDBACK_REASON_OPTIONS.map((reason) => <label key={reason.value} className="inline-flex items-center gap-1.5 text-[11px] text-slate-500"><input type="checkbox" checked={feedbackReasons.includes(reason.value)} onChange={() => toggleFeedbackReason(reason.value)} className="rounded border-slate-300 text-violet-600" />{reason.label}</label>)}
+                {FEEDBACK_REASON_OPTIONS.map((reason) => <label key={reason.value} className="inline-flex items-center gap-1.5 text-[11px] text-slate-500"><input type="checkbox" checked={feedbackReasons.includes(reason.value)} onChange={() => toggleFeedbackReason(reason.value)} className="rounded border-slate-300 text-rose-600" />{reason.label}</label>)}
               </div>
             </div>
             <div className="flex gap-2">
@@ -333,7 +333,7 @@ function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}
           </div>
           <div>
             <h3 className="text-sm font-semibold text-slate-900">3. Apa yang harus dilakukan?</h3><p className="mt-1 text-xs text-slate-500">Langkah kerja yang bisa diikuti dan diukur.</p>
-            {actions.length ? <ol className="mt-2 space-y-2">{actions.map((action, index) => <li key={`${action.action || 'action'}-${index}`} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs leading-5 text-slate-600"><span className="font-bold text-violet-700">#{action.priority || index + 1}</span> <span className="font-semibold text-slate-800">{action.action || 'Tindakan belum tersedia.'}</span>{action.reason && <span className="block mt-1">{action.reason}</span>}{action.expectedMeasurement && <span className="mt-1 block text-slate-500">Ukur: {action.expectedMeasurement}</span>}{evidenceFor(action.evidenceIds).length > 0 && <div className="mt-1 text-[11px] text-slate-500">Bukti: {evidenceFor(action.evidenceIds).map((item) => `${item.metric}=${displayValue(item.value, item.unit)}`).join(' · ')}</div>}{(action.baseline || action.target) && <div className="mt-1 text-[11px] text-slate-500">Baseline: {action.baseline ? displayValue(action.baseline.value, action.baseline.unit) : '—'} · Target: {action.target ? displayValue(action.target.value, action.target.unit) : '—'}</div>}{result.memoryId && <button type="button" onClick={() => onTrackAction(index)} disabled={trackedActions[index]} className="mt-2 rounded-md border border-violet-200 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-60">{trackedActions[index] ? 'Tindakan dicatat' : 'Catat tindakan nyata'}</button>}</li>)}</ol> : <p className="mt-2 text-xs text-slate-500">Tidak ada tindakan terstruktur yang dikembalikan.</p>}
+            {actions.length ? <ol className="mt-2 space-y-2">{actions.map((action, index) => <li key={`${action.action || 'action'}-${index}`} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs leading-5 text-slate-600"><span className="font-bold text-rose-700">#{action.priority || index + 1}</span> <span className="font-semibold text-slate-800">{action.action || 'Tindakan belum tersedia.'}</span>{action.reason && <span className="block mt-1">{action.reason}</span>}{action.expectedMeasurement && <span className="mt-1 block text-slate-500">Ukur: {action.expectedMeasurement}</span>}{evidenceFor(action.evidenceIds).length > 0 && <div className="mt-1 text-[11px] text-slate-500">Bukti: {evidenceFor(action.evidenceIds).map((item) => `${item.metric}=${displayValue(item.value, item.unit)}`).join(' · ')}</div>}{(action.baseline || action.target) && <div className="mt-1 text-[11px] text-slate-500">Baseline: {action.baseline ? displayValue(action.baseline.value, action.baseline.unit) : '—'} · Target: {action.target ? displayValue(action.target.value, action.target.unit) : '—'}</div>}{result.memoryId && <button type="button" onClick={() => onTrackAction(index)} disabled={trackedActions[index]} className="mt-2 rounded-md border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60">{trackedActions[index] ? 'Tindakan dicatat' : 'Catat tindakan nyata'}</button>}</li>)}</ol> : <p className="mt-2 text-xs text-slate-500">Tidak ada tindakan terstruktur yang dikembalikan.</p>}
           </div>
         </div>
       </div>
@@ -389,13 +389,13 @@ function LearningPanel({ memories, onRefresh, onMessage }) {
                     <div className="mt-1 text-[11px] text-slate-500">{action.intent} · status {action.status}{action.metricKey ? ` · ukur ${action.metricKey}` : ' · belum terukur'}</div>
                   </div>
                   <div className="flex gap-2">
-                    {action.status === 'PLANNED' && <button type="button" disabled={busyId === action.id} onClick={() => updateStatus(action, 'IN_PROGRESS')} className="rounded-md border border-violet-200 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50">Mulai</button>}
+                    {action.status === 'PLANNED' && <button type="button" disabled={busyId === action.id} onClick={() => updateStatus(action, 'IN_PROGRESS')} className="rounded-md border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">Mulai</button>}
                     {action.status === 'IN_PROGRESS' && <button type="button" disabled={busyId === action.id} onClick={() => updateStatus(action, 'COMPLETED')} className="rounded-md border border-emerald-200 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">Tandai selesai</button>}
                     {action.status === 'PLANNED' && <button type="button" disabled={busyId === `delete-${action.id}`} onClick={() => removeAction(action)} className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"><Trash2 className="h-3 w-3" aria-hidden="true" /> Hapus</button>}
                   </div>
                   <div className="mt-2 text-[11px] text-slate-500">Arti status: {statusLabel(action.status)}{action.metricKey ? ` · diukur dengan ${metricLabel(action.metricKey)}` : ' · belum ada ukuran keberhasilan yang tervalidasi'}</div>
                 </div>
-                {action.evaluations?.length > 0 && <div className="mt-3 grid gap-2 sm:grid-cols-2">{action.evaluations.map((evaluation) => <div key={evaluation.id} className="rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-600"><div className="flex items-center justify-between gap-2"><span className="font-semibold">Evaluasi {evaluation.windowDays} hari</span><span className="font-bold text-slate-500">{evaluation.status}</span></div>{evaluation.periodStatus && evaluation.periodStatus !== 'NOT_CHECKED' && <div className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Periode: {evaluation.periodStatus}</div>}{evaluation.verdict && <div className="mt-1 font-semibold text-violet-700">{evaluation.verdict} · aktual {displayValue(evaluation.actualValue, action.unit)}</div>}{evaluation.notes && <div className="mt-1 leading-5">{evaluation.notes}</div>}{action.status === 'COMPLETED' && <button type="button" disabled={busyId === `${action.id}-${evaluation.windowDays}`} onClick={() => evaluate(action, evaluation.windowDays)} className="mt-2 rounded-md border border-slate-300 bg-white px-2 py-1 font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50">Perbarui evaluasi</button>}</div>)}</div>}
+                {action.evaluations?.length > 0 && <div className="mt-3 grid gap-2 sm:grid-cols-2">{action.evaluations.map((evaluation) => <div key={evaluation.id} className="rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-600"><div className="flex items-center justify-between gap-2"><span className="font-semibold">Evaluasi {evaluation.windowDays} hari</span><span className="font-bold text-slate-500">{evaluation.status}</span></div>{evaluation.periodStatus && evaluation.periodStatus !== 'NOT_CHECKED' && <div className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Periode: {evaluation.periodStatus}</div>}{evaluation.verdict && <div className="mt-1 font-semibold text-rose-700">{evaluation.verdict} · aktual {displayValue(evaluation.actualValue, action.unit)}</div>}{evaluation.notes && <div className="mt-1 leading-5">{evaluation.notes}</div>}{action.status === 'COMPLETED' && <button type="button" disabled={busyId === `${action.id}-${evaluation.windowDays}`} onClick={() => evaluate(action, evaluation.windowDays)} className="mt-2 rounded-md border border-slate-300 bg-white px-2 py-1 font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50">Perbarui evaluasi</button>}</div>)}</div>}
               </div>
             ))}
           </div>
@@ -641,7 +641,7 @@ export default function HermesExperimentPage() {
         title="Eksperimen Hermes Agent"
         description="Ruang uji terpisah untuk Hermes Agent lokal. Percakapan ini tidak mengubah panel AI/Gemini dan tidak menyimpan riwayat ke database."
         actions={(
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-700">
             <Bot className="h-3.5 w-3.5" aria-hidden="true" /> Eksperimen lokal
           </span>
         )}
@@ -669,7 +669,7 @@ export default function HermesExperimentPage() {
           {INTENT_OPTIONS.map((option) => {
             const active = selectedIntent === option.value;
             return (
-              <button key={option.value} type="button" onClick={() => validateIntent(option.value)} disabled={validationLoading || analysisLoading} className={`rounded-lg border px-3 py-3 text-left transition ${active ? 'border-violet-300 bg-violet-50 ring-1 ring-violet-200' : 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/40'} disabled:cursor-not-allowed disabled:opacity-60`}>
+              <button key={option.value} type="button" onClick={() => validateIntent(option.value)} disabled={validationLoading || analysisLoading} className={`rounded-lg border px-3 py-3 text-left transition ${active ? 'border-rose-300 bg-rose-50 ring-1 ring-rose-200' : 'border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/40'} disabled:cursor-not-allowed disabled:opacity-60`}>
                 <div className="text-xs font-bold text-slate-800">{option.label}</div>
                 <div className="mt-1 text-[11px] leading-5 text-slate-500">{option.description}</div>
               </button>
@@ -677,7 +677,7 @@ export default function HermesExperimentPage() {
           })}
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
-          {validationLoading ? <div className="inline-flex items-center gap-2 text-xs text-slate-500" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /> Memeriksa sumber dan kriteria data...</div> : <QualityPanel validation={validation} loading={validationLoading} analysisLoading={analysisLoading} onAnalyze={runAnalysis} modelReady={modelReady} />}
+          {validationLoading ? <div className="inline-flex items-center gap-2 text-xs text-slate-500" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-rose-600" aria-hidden="true" /> Memeriksa sumber dan kriteria data...</div> : <QualityPanel validation={validation} loading={validationLoading} analysisLoading={analysisLoading} onAnalyze={runAnalysis} modelReady={modelReady} />}
         </div>
         {analysisError && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-800" role="alert">
@@ -711,7 +711,7 @@ export default function HermesExperimentPage() {
       </section>
 
       <AnalysisResult result={analysis} onFeedback={sendFeedback} onTrackAction={trackAction} trackedActions={trackedActions} feedbackBusy={feedbackBusy} memoryUnavailableReason={status?.memory?.available === false ? 'Backend melaporkan penyimpanan memori belum tersedia.' : null} />
-      {learningMessage && <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-xs text-violet-800" role="status">{learningMessage}</div>}
+      {learningMessage && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800" role="status">{learningMessage}</div>}
       <LearningPanel memories={memories} onRefresh={loadMemories} onMessage={setLearningMessage} />
 
       <section className="surface" aria-labelledby="hermes-chat-title">
@@ -734,7 +734,7 @@ export default function HermesExperimentPage() {
               {sending && (
                 <div className="flex justify-start">
                   <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 shadow-sm" role="status" aria-live="polite">
-                    <LoaderCircle className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /> Hermes sedang memproses...
+                    <LoaderCircle className="h-4 w-4 animate-spin text-rose-600" aria-hidden="true" /> Hermes sedang memproses...
                   </div>
                 </div>
               )}
@@ -751,7 +751,7 @@ export default function HermesExperimentPage() {
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Mode chat</div>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {CHAT_MODE_OPTIONS.map((option) => (
-              <label key={option.value} className={`cursor-pointer rounded-lg border px-3 py-2.5 text-xs transition ${chatMode === option.value ? 'border-violet-300 bg-violet-50 ring-1 ring-violet-200' : 'border-slate-200 hover:border-violet-200'}`}>
+              <label key={option.value} className={`cursor-pointer rounded-lg border px-3 py-2.5 text-xs transition ${chatMode === option.value ? 'border-rose-300 bg-rose-50 ring-1 ring-rose-200' : 'border-slate-200 hover:border-rose-200'}`}>
                 <input type="radio" name="hermes-chat-mode" value={option.value} checked={chatMode === option.value} onChange={(event) => setChatMode(event.target.value)} className="sr-only" />
                 <span className="font-semibold text-slate-800">{option.label}</span>
                 <span className="mt-1 block text-[11px] leading-5 text-slate-500">{option.description}</span>
