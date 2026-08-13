@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, RefreshCw } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
+import StatTile from '../components/ui/StatTile';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
@@ -119,15 +120,15 @@ export default function DashboardOverview() {
               {trend.currentIsPartial && ' Hari ini masih berjalan, jadi angkanya belum utuh — penurunan pada panah bisa jadi hanya karena harinya belum selesai.'}
             </p>
           )}
-          <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <MetricCard title="Iklan Dilihat" value={formatNumber(data?.kpis?.adsImpressions)} icon={Eye} trend={trend?.adsImpressions} tone="slate" tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
-            <MetricCard title="Jumlah Klik" value={formatNumber(data?.kpis?.adsClicks)} icon={MousePointerClick} trend={trend?.adsClicks} tone="slate" tip="Jumlah klik pada iklan." />
-            <MetricCard title="Persentase Klik" value={data?.kpis?.adsCtr !== null ? formatPercent(data?.kpis?.adsCtr) : '-'} icon={MousePointerClick} trend={trend?.adsCtr} tone="slate" tip="Persentase klik pada iklan (CTR)." />
-            <MetricCard title="Pesanan" value={formatNumber(data?.kpis?.adsOrders)} icon={ShoppingBag} trend={trend?.adsOrders} tone="slate" tip="Jumlah pesanan yang dihasilkan dari iklan." />
-            <MetricCard title="Produk Terjual" value={formatNumber(data?.kpis?.adsItemSold)} icon={ShoppingBag} trend={trend?.adsItemSold} tone="slate" tip="Jumlah produk yang terjual dari iklan." />
-            <MetricCard title="Penjualan dari Iklan" value={formatIDR(data?.kpis?.adsSales)} icon={BarChart3} trend={trend?.adsSales} tone="slate" tip="Total nilai penjualan dari iklan." />
-            <MetricCard title="Biaya Iklan" value={formatIDR(data?.kpis?.adsSpend)} icon={BarChart3} trend={trend?.adsSpend} tone="slate" tip="Total biaya yang dihabiskan untuk iklan." />
-            <MetricCard title="ROAS" value={data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? '0,00' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`} icon={Target} trend={trend?.adsRoas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
+          <div className="fade-in grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+            <StatTile title="Iklan Dilihat" value={formatNumber(data?.kpis?.adsImpressions)} trend={trend?.adsImpressions} tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
+            <StatTile title="Jumlah Klik" value={formatNumber(data?.kpis?.adsClicks)} trend={trend?.adsClicks} tip="Jumlah klik pada iklan." />
+            <StatTile title="Persentase Klik" value={data?.kpis?.adsCtr !== null ? formatPercent(data?.kpis?.adsCtr) : '-'} trend={trend?.adsCtr} tip="Persentase klik pada iklan (CTR)." />
+            <StatTile title="Pesanan" value={formatNumber(data?.kpis?.adsOrders)} trend={trend?.adsOrders} tip="Jumlah pesanan yang dihasilkan dari iklan." />
+            <StatTile title="Produk Terjual" value={formatNumber(data?.kpis?.adsItemSold)} trend={trend?.adsItemSold} tip="Jumlah produk yang terjual dari iklan." />
+            <StatTile title="Penjualan dari Iklan" value={formatIDR(data?.kpis?.adsSales)} trend={trend?.adsSales} tip="Total nilai penjualan dari iklan." />
+            <StatTile title="Biaya Iklan" value={formatIDR(data?.kpis?.adsSpend)} trend={trend?.adsSpend} invertTrendColor tip="Total biaya yang dihabiskan untuk iklan." />
+            <StatTile title="ROAS" value={data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? '0,00' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`} trend={trend?.adsRoas} accent tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
           </div>
 
           <h2 className="text-base font-semibold text-slate-800 mt-5 mb-2">Performa Toko & Operasional</h2>
