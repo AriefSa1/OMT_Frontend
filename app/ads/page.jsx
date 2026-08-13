@@ -8,6 +8,7 @@ import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/ui/Button';
+import SegmentedControl, { SegmentedItem } from '../../components/ui/SegmentedControl';
 import ProgressBar from '../../components/ProgressBar';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
@@ -167,24 +168,11 @@ export default function AdsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter status kampanye */}
-            <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-              {CAMPAIGN_STATE_FILTERS.map((opt) => {
-                const active = campaignStateFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setCampaignStateFilter(opt.id)}
-                    aria-pressed={active}
-                    className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                      active ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            <SegmentedControl value={campaignStateFilter} onChange={setCampaignStateFilter} aria-label="Filter status kampanye">
+              {CAMPAIGN_STATE_FILTERS.map((opt) => (
+                <SegmentedItem key={opt.id} value={opt.id}>{opt.label}</SegmentedItem>
+              ))}
+            </SegmentedControl>
             <label className="sr-only" htmlFor="campaign-sort">
               Urutkan kampanye
             </label>
