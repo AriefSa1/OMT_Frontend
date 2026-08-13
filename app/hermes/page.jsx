@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, CalendarDays, CircleAlert, CircleCheck, Info, LoaderCircle, RefreshCw, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { analyzeHermes, evaluateHermesAction, fetchHermesMemories, fetchHermesStatus, sendHermesChat, submitHermesFeedback, trackHermesAction, updateHermesAction, validateHermesAnalysis } from '../../lib/api';
+import { analyzeHermes, deleteHermesAction, evaluateHermesAction, fetchHermesMemories, fetchHermesStatus, sendHermesChat, submitHermesFeedback, trackHermesAction, updateHermesAction, validateHermesAnalysis } from '../../lib/api';
 
 const INTENT_OPTIONS = [
   { value: 'IKLAN', label: 'Iklan', description: 'Spend, sales, ROAS, CTR, dan kampanye' },
@@ -34,6 +34,55 @@ function qualityTone(status) {
   return 'border-rose-200 bg-rose-50 text-rose-800';
 }
 
+const STATUS_LABELS = {
+  PLANNED: 'Belum dimulai',
+  IN_PROGRESS: 'Sedang dikerjakan',
+  COMPLETED: 'Selesai',
+  SKIPPED: 'Dilewati',
+  CANCELLED: 'Dibatalkan',
+};
+
+const SEVERITY_LABELS = {
+  HIGH: 'Penting',
+  MEDIUM: 'Perlu diperhatikan',
+  LOW: 'Catatan',
+};
+
+const METRIC_LABELS = {
+  confirmedSales: 'Penjualan terkonfirmasi',
+  confirmedGmv: 'GMV terkonfirmasi',
+  confirmedOrders: 'Pesanan terkonfirmasi',
+  confirmedUnits: 'Unit terjual',
+  confirmedBuyers: 'Pembeli',
+  totalSpend: 'Biaya iklan',
+  totalSales: 'Penjualan dari iklan',
+  roas: 'ROAS',
+  ctr: 'CTR',
+  averageConversionRate: 'Rata-rata konversi',
+  conversionRate: 'Konversi',
+  views: 'Dilihat',
+  visitors: 'Pengunjung',
+  addToCartRate: 'Tambah ke keranjang',
+  bounceRate: 'Bounce rate',
+};
+
+function humanize(value, fallback = 'Belum tersedia') {
+  if (!value) return fallback;
+  return String(value)
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function metricLabel(value) {
+  return METRIC_LABELS[value] || humanize(value);
+}
+
+function statusLabel(value) {
+  return STATUS_LABELS[value] || humanize(value);
+}
+
 function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
   if (!validation) {
     return (
@@ -58,14 +107,14 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
         <div className="flex items-start gap-2">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider">Data {quality.status || 'UNKNOWN'}</div>
+            <div className="text-xs font-bold uppercase tracking-wider">Kualitas data: {humanize(quality.status, 'Belum diketahui')}</div>
             <p className="mt-1 text-xs leading-5">{quality.reason || 'Status kualitas data belum tersedia.'}</p>
           </div>
         </div>
         {validation.canCallHermes ? (
           <button type="button" onClick={onAnalyze} disabled={analysisLoading} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-violet-600 px-3 text-xs font-bold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-400">
             {analysisLoading ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Bot className="h-3.5 w-3.5" aria-hidden="true" />}
-            {analysisLoading ? 'Menganalisa...' : 'Kirim konteks ke Hermes'}
+            {analysisLoading ? 'Sedang menganalisa...' : 'Mulai analisa'}
           </button>
         ) : (
           <span className="text-[11px] font-semibold">Pengiriman dihentikan</span>
@@ -74,30 +123,30 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400"><CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> Rentang analisa</div>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400"><CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> Periode yang dipakai</div>
           <div className="mt-2 text-sm font-semibold text-slate-800">{validation.period?.startDate || 'Belum tersedia'} — {validation.period?.endDate || 'Belum tersedia'}</div>
           <p className="mt-1 text-[11px] text-slate-500">{validation.period?.days || 'Belum tersedia'} hari kalender{validation.period?.defaultRange ? ' · default 30 hari terakhir' : validation.period?.defaulted ? ' · tanggal otomatis' : ''}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 sm:min-w-44">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mode</div>
-          <div className="mt-2 text-sm font-semibold text-slate-800">{quality.analysisMode || 'Belum tersedia'}</div>
-          <p className="mt-1 text-[11px] text-slate-500">Klaim dibatasi oleh data trusted</p>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batas analisa</div>
+          <div className="mt-2 text-sm font-semibold text-slate-800">{humanize(quality.analysisMode)}</div>
+          <p className="mt-1 text-[11px] text-slate-500">Hermes hanya boleh memakai angka yang terukur</p>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mode sumber</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sumber data</div>
           <div className="mt-2 text-sm font-semibold text-slate-800">{quality.sourceMode || 'SNAPSHOT'}</div>
-          <p className="mt-1 text-[11px] text-slate-500">Sumber yang digunakan backend</p>
+          <p className="mt-1 text-[11px] text-slate-500">Data yang dipakai untuk kesimpulan</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Evidence ledger</div>
           <div className="mt-2 text-sm font-semibold text-slate-800">{evidence.length} bukti</div>
-          <p className="mt-1 text-[11px] text-slate-500">Angka analisa harus merujuk ke bukti</p>
+          <p className="mt-1 text-[11px] text-slate-500">Setiap angka harus bisa dilacak</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Periode efektif</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tanggal data aktual</div>
           <div className="mt-2 text-sm font-semibold text-slate-800">{effectivePeriod?.native || 'Sesuai permintaan'}</div>
           <p className="mt-1 text-[11px] text-slate-500">{effectivePeriod?.measured?.startDate && effectivePeriod?.measured?.endDate ? `${effectivePeriod.measured.startDate} — ${effectivePeriod.measured.endDate}` : 'Belum tersedia'}</p>
         </div>
@@ -111,7 +160,7 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
       )}
 
       <div>
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Sumber yang diperiksa</div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data yang diperiksa</div>
         <div className="grid gap-2 sm:grid-cols-2">
           {sources.map((source) => (
             <div key={source.name} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs">
@@ -124,7 +173,7 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
 
       {gaps.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batasan yang akan dibawa ke Hermes</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hal yang perlu diingat saat membaca hasil</div>
           <ul className="mt-2 space-y-1 text-xs leading-5 text-slate-600">
             {gaps.map((gap, index) => <li key={`${gap}-${index}`} className="flex gap-2"><span className="text-amber-500">•</span><span>{gap}</span></li>)}
           </ul>
@@ -134,7 +183,7 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
   );
 }
 
-function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {} }) {
+function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}, feedbackBusy, memoryUnavailableReason }) {
   const [feedbackReasons, setFeedbackReasons] = useState([]);
   if (!result) return null;
   const analysis = result.analysis || {};
@@ -156,8 +205,15 @@ function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}
         </div>
       </div>
       <div className="space-y-5 p-5">
-        <div className="rounded-lg border border-violet-100 bg-violet-50/60 px-4 py-3 text-sm leading-6 text-slate-700">{analysis.executiveVerdict || 'Hermes tidak memberikan executive verdict.'}</div>
-        {result.memoryId && (
+        <div className="rounded-lg border border-violet-100 bg-violet-50/60 px-4 py-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-violet-600">Kesimpulan singkat</div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{analysis.executiveVerdict || 'Hermes tidak memberikan kesimpulan.'}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+          <div className="font-semibold text-slate-800">Cara membaca hasil ini</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3"><div><span className="font-semibold text-violet-700">1. Temuan:</span> apa yang terjadi menurut data.</div><div><span className="font-semibold text-violet-700">2. Penyebab:</span> dugaan yang masih perlu dicek.</div><div><span className="font-semibold text-violet-700">3. Tindakan:</span> langkah kerja yang bisa dicatat.</div></div>
+        </div>
+        {result.memoryId ? (
           <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span>Apakah analisa ini membantu dan cukup dapat dipercaya untuk ditindaklanjuti?</span>
@@ -166,21 +222,23 @@ function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}
               </div>
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => onFeedback('HELPFUL', feedbackReasons)} className="rounded-md border border-emerald-200 px-2.5 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-50">Membantu</button>
-              <button type="button" onClick={() => onFeedback('PARTIALLY_HELPFUL', feedbackReasons)} className="rounded-md border border-amber-200 px-2.5 py-1.5 font-semibold text-amber-700 hover:bg-amber-50">Sebagian</button>
-              <button type="button" onClick={() => onFeedback('NOT_HELPFUL', feedbackReasons)} className="rounded-md border border-slate-300 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">Tidak membantu</button>
-              <button type="button" onClick={() => onFeedback('INACCURATE', feedbackReasons)} className="rounded-md border border-rose-200 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50">Tidak akurat</button>
+              <button type="button" disabled={feedbackBusy} onClick={() => onFeedback('HELPFUL', feedbackReasons)} className="rounded-md border border-emerald-200 px-2.5 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">{feedbackBusy ? 'Mengirim...' : 'Membantu'}</button>
+              <button type="button" disabled={feedbackBusy} onClick={() => onFeedback('PARTIALLY_HELPFUL', feedbackReasons)} className="rounded-md border border-amber-200 px-2.5 py-1.5 font-semibold text-amber-700 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">Sebagian</button>
+              <button type="button" disabled={feedbackBusy} onClick={() => onFeedback('NOT_HELPFUL', feedbackReasons)} className="rounded-md border border-slate-300 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Tidak membantu</button>
+              <button type="button" disabled={feedbackBusy} onClick={() => onFeedback('INACCURATE', feedbackReasons)} className="rounded-md border border-rose-200 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Tidak akurat</button>
             </div>
           </div>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800"><span className="font-semibold">Feedback sementara belum aktif.</span> Hasil analisa belum tersimpan ke memori. {memoryUnavailableReason || 'Pastikan database backend aktif, lalu jalankan analisa ulang.'}</div>
         )}
 
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Temuan kritis</h3>
+          <div className="flex items-end justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">1. Apa yang terjadi?</h3><p className="mt-1 text-xs text-slate-500">Fakta utama dari data yang sudah diperiksa.</p></div><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Temuan</span></div>
           {findings.length ? (
             <div className="mt-2 space-y-2">
               {findings.map((finding, index) => (
                 <div key={`${finding.title || 'finding'}-${index}`} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-semibold text-slate-800">{finding.title || 'Temuan tanpa judul'}</span>{finding.severity && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{finding.severity}</span>}</div>
+                  <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-semibold text-slate-800">{finding.title || 'Temuan tanpa judul'}</span>{finding.severity && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{SEVERITY_LABELS[finding.severity] || humanize(finding.severity)}</span>}</div>
                   <p className="mt-1 text-xs leading-5 text-slate-600">{finding.description || 'Deskripsi belum tersedia.'}</p>
                   {evidenceFor(finding.evidenceIds).length > 0 && <div className="mt-2 space-y-1 text-[11px] text-slate-500">{evidenceFor(finding.evidenceIds).map((item) => <div key={item.id}><span className="font-medium">{item.metric || 'Metrik'}</span>: <span className="font-semibold text-slate-700">{displayValue(item.value, item.unit)}</span>{item.source ? ` · ${item.source}` : ''}</div>)}</div>}
                 </div>
@@ -191,11 +249,11 @@ function AnalysisResult({ result, onFeedback, onTrackAction, trackedActions = {}
 
         <div className="grid gap-5 lg:grid-cols-2">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Hipotesis akar masalah</h3>
+            <h3 className="text-sm font-semibold text-slate-900">2. Mengapa ini bisa terjadi?</h3><p className="mt-1 text-xs text-slate-500">Dugaan penyebab yang masih perlu dicek, bukan fakta final.</p>
             {rootCauses.length ? <div className="mt-2 space-y-2">{rootCauses.map((cause, index) => <div key={`${cause.hypothesis || 'cause'}-${index}`} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs leading-5 text-slate-600"><span className="font-semibold text-slate-800">{cause.hypothesis || 'Hipotesis belum tersedia.'}</span>{evidenceFor(cause.supportingEvidenceIds).length > 0 && <div className="mt-1 text-[11px] text-slate-500">Bukti: {evidenceFor(cause.supportingEvidenceIds).map((item) => `${item.metric}=${displayValue(item.value, item.unit)}`).join(' · ')}</div>}{cause.howToTest && <div className="mt-1 text-[11px] text-slate-500">Uji: {cause.howToTest}</div>}</div>)}</div> : <p className="mt-2 text-xs text-slate-500">Tidak ada hipotesis terstruktur yang dikembalikan.</p>}
           </div>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Prioritas tindakan</h3>
+            <h3 className="text-sm font-semibold text-slate-900">3. Apa yang harus dilakukan?</h3><p className="mt-1 text-xs text-slate-500">Langkah kerja yang bisa diikuti dan diukur.</p>
             {actions.length ? <ol className="mt-2 space-y-2">{actions.map((action, index) => <li key={`${action.action || 'action'}-${index}`} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs leading-5 text-slate-600"><span className="font-bold text-violet-700">#{action.priority || index + 1}</span> <span className="font-semibold text-slate-800">{action.action || 'Tindakan belum tersedia.'}</span>{action.reason && <span className="block mt-1">{action.reason}</span>}{action.expectedMeasurement && <span className="mt-1 block text-slate-500">Ukur: {action.expectedMeasurement}</span>}{evidenceFor(action.evidenceIds).length > 0 && <div className="mt-1 text-[11px] text-slate-500">Bukti: {evidenceFor(action.evidenceIds).map((item) => `${item.metric}=${displayValue(item.value, item.unit)}`).join(' · ')}</div>}{(action.baseline || action.target) && <div className="mt-1 text-[11px] text-slate-500">Baseline: {action.baseline ? displayValue(action.baseline.value, action.baseline.unit) : '—'} · Target: {action.target ? displayValue(action.target.value, action.target.unit) : '—'}</div>}{result.memoryId && <button type="button" onClick={() => onTrackAction(index)} disabled={trackedActions[index]} className="mt-2 rounded-md border border-violet-200 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-60">{trackedActions[index] ? 'Tindakan dicatat' : 'Catat tindakan nyata'}</button>}</li>)}</ol> : <p className="mt-2 text-xs text-slate-500">Tidak ada tindakan terstruktur yang dikembalikan.</p>}
           </div>
         </div>
@@ -216,6 +274,15 @@ function LearningPanel({ memories, onRefresh, onMessage }) {
     if (response.success) onRefresh();
   };
 
+  const removeAction = async (action) => {
+    if (typeof window !== 'undefined' && !window.confirm('Hapus tindakan yang belum dimulai ini?')) return;
+    setBusyId(`delete-${action.id}`);
+    const response = await deleteHermesAction(action.id);
+    setBusyId(null);
+    onMessage(response.success ? 'Tindakan yang belum dimulai berhasil dihapus.' : (response.message || 'Tindakan gagal dihapus.'));
+    if (response.success) onRefresh();
+  };
+
   const evaluate = async (action, windowDays) => {
     setBusyId(`${action.id}-${windowDays}`);
     const response = await evaluateHermesAction(action.id, windowDays);
@@ -228,7 +295,7 @@ function LearningPanel({ memories, onRefresh, onMessage }) {
     <section className="surface overflow-hidden" aria-labelledby="hermes-learning-title">
       <div className="border-b border-slate-200 px-5 py-4">
         <h2 id="hermes-learning-title" className="text-sm font-semibold text-slate-900">Memori & pembelajaran dari tindakan nyata</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">Feedback, tindakan yang selesai, dan outcome 7/30 hari disimpan per pengguna. Evaluasi hanya membaca sumber kanonik live dan tidak menyatakan hubungan sebab-akibat.</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">Di sini tim dapat melihat feedback, memulai tindakan, menandai tindakan selesai, lalu memeriksa hasilnya setelah 7 atau 30 hari. Tindakan yang belum dimulai dapat dihapus.</p>
       </div>
       <div className="p-5">
         {!actions.length ? (
@@ -245,7 +312,9 @@ function LearningPanel({ memories, onRefresh, onMessage }) {
                   <div className="flex gap-2">
                     {action.status === 'PLANNED' && <button type="button" disabled={busyId === action.id} onClick={() => updateStatus(action, 'IN_PROGRESS')} className="rounded-md border border-violet-200 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50">Mulai</button>}
                     {action.status === 'IN_PROGRESS' && <button type="button" disabled={busyId === action.id} onClick={() => updateStatus(action, 'COMPLETED')} className="rounded-md border border-emerald-200 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">Tandai selesai</button>}
+                    {action.status === 'PLANNED' && <button type="button" disabled={busyId === `delete-${action.id}`} onClick={() => removeAction(action)} className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"><Trash2 className="h-3 w-3" aria-hidden="true" /> Hapus</button>}
                   </div>
+                  <div className="mt-2 text-[11px] text-slate-500">Arti status: {statusLabel(action.status)}{action.metricKey ? ` · diukur dengan ${metricLabel(action.metricKey)}` : ' · belum ada ukuran keberhasilan yang tervalidasi'}</div>
                 </div>
                 {action.evaluations?.length > 0 && <div className="mt-3 grid gap-2 sm:grid-cols-2">{action.evaluations.map((evaluation) => <div key={evaluation.id} className="rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-600"><div className="flex items-center justify-between gap-2"><span className="font-semibold">Evaluasi {evaluation.windowDays} hari</span><span className="font-bold text-slate-500">{evaluation.status}</span></div>{evaluation.periodStatus && evaluation.periodStatus !== 'NOT_CHECKED' && <div className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Periode: {evaluation.periodStatus}</div>}{evaluation.verdict && <div className="mt-1 font-semibold text-violet-700">{evaluation.verdict} · aktual {displayValue(evaluation.actualValue, action.unit)}</div>}{evaluation.notes && <div className="mt-1 leading-5">{evaluation.notes}</div>}{action.status === 'COMPLETED' && <button type="button" disabled={busyId === `${action.id}-${evaluation.windowDays}`} onClick={() => evaluate(action, evaluation.windowDays)} className="mt-2 rounded-md border border-slate-300 bg-white px-2 py-1 font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50">Perbarui evaluasi</button>}</div>)}</div>}
               </div>
@@ -335,6 +404,7 @@ export default function HermesExperimentPage() {
   const [memories, setMemories] = useState([]);
   const [trackedActions, setTrackedActions] = useState({});
   const [learningMessage, setLearningMessage] = useState(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
 
   const loadStatus = useCallback(async () => {
     setStatusLoading(true);
@@ -379,15 +449,27 @@ export default function HermesExperimentPage() {
       setTrackedActions({});
       loadMemories();
     }
-    else setAnalysisError({ errorCode: response.errorCode, message: response.message || response.error || 'Analisa Hermes gagal.', details: response.validationErrors || [] });
+    else setAnalysisError({
+      errorCode: response.errorCode,
+      message: response.message || response.error || 'Analisa Hermes gagal.',
+      details: response.validationErrors || [],
+      warnings: response.validationWarnings || [],
+      diagnostic: response.diagnostic || null,
+      requestId: response.requestId || response.diagnostic?.requestId || null,
+    });
     setAnalysisLoading(false);
   };
 
-  const sendFeedback = async (rating, reasons = []) => {
-    if (!analysis?.memoryId) return;
-    const response = await submitHermesFeedback(analysis.memoryId, { rating, reasons });
-    setLearningMessage(response.success ? 'Feedback tersimpan dan akan menjadi sinyal evaluasi Hermes.' : (response.message || 'Feedback gagal disimpan.'));
+  const sendFeedback = async (rating, reasons = [], comment = null) => {
+    if (!analysis?.memoryId || feedbackBusy) return { success: false, errorCode: 'MEMORY_NOT_FOUND' };
+    setFeedbackBusy(true);
+    const response = await submitHermesFeedback(analysis.memoryId, { rating, reasons, comment });
+    setFeedbackBusy(false);
+    setLearningMessage(response.success
+      ? 'Feedback tersimpan. Hermes akan menggunakan sinyal ini untuk evaluasi berikutnya.'
+      : `Feedback belum tersimpan${response.errorCode ? ` (${response.errorCode})` : ''}: ${response.message || 'periksa koneksi backend dan database.'}`);
     if (response.success) loadMemories();
+    return response;
   };
 
   const trackAction = async (recommendationIndex) => {
@@ -450,7 +532,8 @@ export default function HermesExperimentPage() {
       <section className="surface p-5" aria-labelledby="hermes-analysis-title">
         <div>
           <h2 id="hermes-analysis-title" className="text-sm font-semibold text-slate-900">Analisa berbasis data aplikasi</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Pilih fokus dengan bahasa yang sama seperti perintah pengguna. Default yang dipakai backend adalah tepat 30 hari kalender terakhir; data akan divalidasi sebelum dikirim ke Hermes.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Pilih topik yang ingin dipahami. Hermes akan memeriksa data terlebih dahulu, lalu menjelaskan apa yang terjadi, kemungkinan penyebabnya, dan langkah kerja yang bisa dilakukan tim.</p>
+          <div className="mt-3 grid gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-[11px] leading-5 text-slate-600 sm:grid-cols-3"><div><span className="font-semibold text-slate-800">Temuan</span><br />Fakta yang terlihat di data.</div><div><span className="font-semibold text-slate-800">Penyebab</span><br />Dugaan yang perlu diverifikasi.</div><div><span className="font-semibold text-slate-800">Tindakan</span><br />Langkah praktis dan cara mengukurnya.</div></div>
         </div>
         <div className="mt-4 grid gap-2 md:grid-cols-3">
           {INTENT_OPTIONS.map((option) => {
@@ -466,10 +549,38 @@ export default function HermesExperimentPage() {
         <div className="mt-4 border-t border-slate-100 pt-4">
           {validationLoading ? <div className="inline-flex items-center gap-2 text-xs text-slate-500" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /> Memeriksa sumber dan kriteria data...</div> : <QualityPanel validation={validation} loading={validationLoading} analysisLoading={analysisLoading} onAnalyze={runAnalysis} />}
         </div>
-        {analysisError && <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-800" role="alert"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden="true" /><div><p className="font-semibold">Analisa Hermes gagal{analysisError.errorCode ? ` (${analysisError.errorCode})` : ''}</p><p className="mt-1 leading-5">{analysisError.message}</p>{analysisError.details?.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-4">{analysisError.details.map((detail, index) => <li key={`${detail}-${index}`}>{detail}</li>)}</ul>}</div></div>}
+        {analysisError && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-800" role="alert">
+            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-semibold">Analisa Hermes gagal{analysisError.errorCode ? ` (${analysisError.errorCode})` : ''}</p>
+              <p className="mt-1 leading-5">{analysisError.message}</p>
+              {analysisError.requestId && <p className="mt-1 font-mono text-[10px] text-rose-600">requestId: {analysisError.requestId}</p>}
+              {analysisError.details?.length > 0 && (
+                <div className="mt-2 rounded-md border border-rose-200 bg-white/60 px-3 py-2">
+                  <p className="font-semibold text-rose-900">Detail validator</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {analysisError.details.map((detail, index) => <li key={`${detail}-${index}`}>{detail}</li>)}
+                  </ul>
+                </div>
+              )}
+              {analysisError.warnings?.length > 0 && (
+                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                  <p className="font-semibold">Warning validator</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {analysisError.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                  </ul>
+                </div>
+              )}
+              {analysisError.diagnostic && (
+                <p className="mt-2 text-[10px] text-rose-600">Tahap: {analysisError.diagnostic.stage || 'unknown'} · Detail lengkap tersedia di terminal backend.</p>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
-      <AnalysisResult result={analysis} onFeedback={sendFeedback} onTrackAction={trackAction} trackedActions={trackedActions} />
+      <AnalysisResult result={analysis} onFeedback={sendFeedback} onTrackAction={trackAction} trackedActions={trackedActions} feedbackBusy={feedbackBusy} memoryUnavailableReason={status?.memory?.available === false ? 'Backend melaporkan penyimpanan memori belum tersedia.' : null} />
       {learningMessage && <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-xs text-violet-800" role="status">{learningMessage}</div>}
       <LearningPanel memories={memories} onRefresh={loadMemories} onMessage={setLearningMessage} />
 
