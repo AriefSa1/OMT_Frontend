@@ -7,12 +7,18 @@ import { cn } from '../../lib/utils';
 // Satu sumber kebenaran untuk semua tombol. Ganti <button className="..."> yang tersebar
 // di tiap halaman dengan <Button variant size icon loading> agar bentuk, tinggi, radius,
 // state fokus, dan disabled seragam di seluruh aplikasi.
+// Disabled/loading meredupkan warna variannya sendiri (opacity) alih-alih berubah
+// jadi abu — jadi spinner saat loading tetap kontras dan state konsisten antar varian.
 const VARIANTS = {
-  primary: 'bg-rose-600 text-white shadow-sm hover:bg-rose-700 disabled:bg-slate-300 disabled:shadow-none',
+  primary: 'bg-rose-600 text-white shadow-sm hover:bg-rose-700 disabled:opacity-60',
   secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50',
   ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50',
   subtle: 'border border-rose-100 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50',
-  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:bg-slate-300 disabled:shadow-none',
+  // neutral: aksi "simpan/konfirmasi" bertekanan tinggi tapi non-brand (slate gelap).
+  neutral: 'bg-slate-800 text-white shadow-sm hover:bg-slate-700 disabled:opacity-60',
+  // info: aksi sekunder informatif (tes koneksi, cek) — indigo lembut.
+  info: 'border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50',
+  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:opacity-60',
 };
 
 const SIZES = {

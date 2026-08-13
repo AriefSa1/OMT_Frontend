@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, AlertCircle, Check, CheckCircle2, KeyRound, Plus, Power, RefreshCw, Save, Settings2, ShieldCheck, Store, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
+import Button from '../../components/ui/Button';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../../components/StatusBadge';
 import ConnectionStatus from '../../components/ConnectionStatus';
 import { fetchConnectionStatus, fetchSettings, fetchSyncLogs, saveSettings, testWarehouseConnection, updateShopeeCookie, triggerSyncAndPoll, fetchMarketplaces, updateStoreMarketplace } from '../../lib/api';
@@ -393,21 +394,10 @@ export default function SettingsPage() {
               </label>
             </div>
             <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddStore(false)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={connecting}
-                className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>{connecting ? 'Menghubungkan & Sync...' : 'Simpan dan Hubungkan'}</span>
-              </button>
+              <Button variant="secondary" onClick={() => setShowAddStore(false)}>Batal</Button>
+              <Button type="submit" variant="primary" loading={connecting} icon={ShieldCheck}>
+                {connecting ? 'Menghubungkan & Sync...' : 'Simpan dan Hubungkan'}
+              </Button>
             </div>
           </form>
         )}
@@ -492,14 +482,9 @@ export default function SettingsPage() {
               </select>
             </label>
             <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-70"
-              >
-                <Save className="h-4 w-4" />
+              <Button type="submit" variant="neutral" loading={saving} icon={Save}>
                 {saving ? 'Menyimpan...' : 'Simpan pengaturan'}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
@@ -625,25 +610,14 @@ export default function SettingsPage() {
 
         <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleTestWarehouse}
-              disabled={testingWarehouse}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-3.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-60"
-            >
-              <Activity className={`h-4 w-4 ${testingWarehouse ? 'animate-spin' : ''}`} />
+            <Button variant="info" onClick={handleTestWarehouse} loading={testingWarehouse} icon={Activity}>
               {testingWarehouse ? 'Menguji koneksi...' : 'Uji Koneksi Gudang'}
-            </button>
+            </Button>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-800 px-4 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-70"
-          >
-            <Check className="h-4 w-4" />
+          <Button type="submit" variant="neutral" loading={saving} icon={Check} className="px-4">
             {saving ? 'Menyimpan...' : 'Simpan Koneksi Gudang'}
-          </button>
+          </Button>
         </div>
       </form>
 
