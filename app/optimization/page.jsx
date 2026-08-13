@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Megaphone, Package, Store } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
+import AiDeepAnalysis from '../../components/AiDeepAnalysis';
 
 const SECTIONS = [
   {
@@ -30,6 +31,12 @@ export default function OptimizationHubPage() {
         title="Optimasi"
         description="Tiga sudut pandang atas snapshot yang sama. Rekomendasi hanya muncul bila metriknya tersimpan; sistem tidak membuat perubahan otomatis ke Seller Center."
         actions={<Link href="/actions" className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Pusat Tindakan</Link>}
+      />
+
+      <AiDeepAnalysis
+        title="Optimasi Mendalam AI"
+        subtitle="Diagnosa akar-masalah per produk, iklan, dan stok — melampaui rekomendasi aturan di bawah."
+        show={['summary', 'priorityActions', 'deepDives', 'dataGaps']}
       />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

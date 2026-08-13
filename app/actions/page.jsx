@@ -9,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime, formatSource } from '../../components/StatusBadge';
 import { createTask, fetchTasks, updateTaskStatus } from '../../lib/api';
 import { useSnapshotRefresh } from '../../lib/hooks';
+import AiDeepAnalysis from '../../components/AiDeepAnalysis';
 
 const STATUS_LABELS = {
   PROPOSED: 'Usulan',
@@ -79,6 +80,12 @@ export default function ActionCenterPage() {
       </PageHeader>
 
       {message && <div className="surface-muted flex items-center justify-between gap-3 px-4 py-3 text-xs text-slate-700"><span>{message}</span><button type="button" onClick={() => setMessage('')} className="font-semibold text-rose-700">Tutup</button></div>}
+
+      <AiDeepAnalysis
+        title="Rencana Kerja Prioritas AI"
+        subtitle="Tindakan paling berdampak hari ini, disusun AI dari sinyal produk, iklan, dan stok."
+        show={['summary', 'priorityActions']}
+      />
 
       {/* Strip ringkasan: rekomendasi per prioritas & tugas per status. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

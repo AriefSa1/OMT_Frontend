@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, CheckSquare, Gauge, LayoutDashboard, Layers, Megaphone, Settings, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, TrendingUp, Wrench, X } from 'lucide-react';
+import { BarChart3, Bot, Boxes, CheckSquare, Gauge, LayoutDashboard, Layers, Megaphone, Settings, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, TrendingUp, Wrench, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_GROUPS = [
@@ -33,14 +33,20 @@ const NAV_GROUPS = [
     title: 'Rekomendasi & Optimasi',
     items: [
       { label: 'Aksi & Tugas', href: '/actions', icon: CheckSquare, maintenance: true },
-      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge, maintenance: true },
-      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles, maintenance: true },
+      { label: 'Pusat Optimasi', href: '/optimization', icon: Gauge },
+      { label: 'Wawasan Growth', href: '/growth', icon: Sparkles },
     ],
   },
   {
     title: 'Sistem',
     items: [
       { label: 'Pengaturan Koneksi', href: '/settings', icon: Settings },
+    ],
+  },
+  {
+    title: 'Eksperimen',
+    items: [
+      { label: 'Hermes Agent', href: '/hermes', icon: Bot },
     ],
   },
 ];
