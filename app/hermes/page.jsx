@@ -4,12 +4,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, CalendarDays, CircleAlert, CircleCheck, Info, LoaderCircle, RefreshCw, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { analyzeHermes, deleteHermesAction, evaluateHermesAction, fetchHermesMemories, fetchHermesStatus, sendHermesChat, submitHermesFeedback, trackHermesAction, updateHermesAction, validateHermesAnalysis } from '../../lib/api';
+import { analyzeHermes, deleteHermesAction, evaluateHermesAction, fetchHermesMemories, fetchHermesModels, fetchHermesStatus, sendHermesChat, submitHermesFeedback, trackHermesAction, updateHermesAction, validateHermesAnalysis } from '../../lib/api';
 
 const INTENT_OPTIONS = [
   { value: 'IKLAN', label: 'Iklan', description: 'Spend, sales, ROAS, CTR, dan kampanye' },
   { value: 'PERFORMA_TOKO', label: 'Performa Toko', description: 'GMV, order, AOV, pembatalan, dan retur' },
   { value: 'PERFORMA_PRODUK', label: 'Performa Produk', description: 'Produk terukur, penjualan, order, dan funnel' },
+];
+
+const CHAT_MODE_OPTIONS = [
+  {
+    value: 'EXPLORATORY',
+    label: 'Chat eksploratif',
+    description: 'Untuk bertanya, brainstorming, dan riset umum. Tidak membawa data dashboard.',
+  },
+  {
+    value: 'GROUNDED_ANALYSIS',
+    label: 'Chat terarah',
+    description: 'Untuk pertanyaan yang harus merujuk konteks terukur. Analisa bisnis tetap gunakan kartu intent.',
+  },
 ];
 
 const FEEDBACK_REASON_OPTIONS = [
@@ -83,7 +96,17 @@ function statusLabel(value) {
   return STATUS_LABELS[value] || humanize(value);
 }
 
-function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
+function modelDisplayName(modelId) {
+  const [provider, ...rest] = String(modelId || '').split('/');
+  const modelName = rest.join('/') || provider;
+  return `${provider} · ${modelName}`;
+}
+
+function modelProvider(modelId) {
+  return String(modelId || '').split('/')[0] || 'other';
+}
+
+function QualityPanel({ validation, loading, analysisLoading, onAnalyze, modelReady }) {
   if (!validation) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-xs leading-5 text-slate-500">
@@ -111,13 +134,13 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
             <p className="mt-1 text-xs leading-5">{quality.reason || 'Status kualitas data belum tersedia.'}</p>
           </div>
         </div>
-        {validation.canCallHermes ? (
+        {validation.canCallHermes && modelReady ? (
           <button type="button" onClick={onAnalyze} disabled={analysisLoading} className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-violet-600 px-3 text-xs font-bold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-400">
             {analysisLoading ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Bot className="h-3.5 w-3.5" aria-hidden="true" />}
             {analysisLoading ? 'Sedang menganalisa...' : 'Mulai analisa'}
           </button>
         ) : (
-          <span className="text-[11px] font-semibold">Pengiriman dihentikan</span>
+          <span className="text-[11px] font-semibold">{validation.canCallHermes && !modelReady ? 'Pilih model yang terdeteksi' : 'Pengiriman dihentikan'}</span>
         )}
       </div>
 
@@ -180,6 +203,61 @@ function QualityPanel({ validation, loading, analysisLoading, onAnalyze }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ModelSelectionPanel({ status, models, selectedModel, modelLoading, modelError, onSelect, onRefresh }) {
+  const groupedModels = models.reduce((groups, model) => {
+    const provider = modelProvider(model.id);
+    if (!groups[provider]) groups[provider] = [];
+    groups[provider].push(model);
+    return groups;
+  }, {});
+  const configuredModelAvailable = status?.model && models.some((model) => model.id === status.model);
+
+  return (
+    <section className="surface p-5" aria-labelledby="hermes-model-title">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 id="hermes-model-title" className="text-sm font-semibold text-slate-900">Model dan mode kerja</h2>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Daftar model dibaca langsung dari endpoint Hermes `/v1/models`. Pilihan ini dikirim per request dan tidak mengubah konfigurasi provider di PC.</p>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={modelLoading} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
+          <RefreshCw className={`h-3.5 w-3.5 ${modelLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+          Muat model
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div>
+          <label htmlFor="hermes-model-select" className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Model yang dipakai</label>
+          <select id="hermes-model-select" value={selectedModel} onChange={(event) => onSelect(event.target.value)} disabled={modelLoading || !models.length} className="ui-input mt-1 h-10 w-full rounded-lg px-3 text-xs">
+            {!models.length && <option value="">{modelLoading ? 'Membaca daftar model...' : 'Model belum tersedia'}</option>}
+            {Object.entries(groupedModels).map(([provider, providerModels]) => (
+              <optgroup key={provider} label={provider}>
+                {providerModels.map((model) => <option key={model.id} value={model.id}>{modelDisplayName(model.id)}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          {configuredModelAvailable === false && status?.model && (
+            <p className="mt-1 text-[11px] leading-5 text-amber-700">Model default backend `{status.model}` tidak muncul dari Hermes. Pilih model yang terdeteksi di daftar.</p>
+          )}
+          {modelError && <p className="mt-1 text-[11px] leading-5 text-rose-700">{modelError}</p>}
+          {models.length > 0 && <p className="mt-1 text-[11px] text-slate-400">{models.length} model terdeteksi dari Hermes.</p>}
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Mode penggunaan</div>
+          <div className="mt-1 grid gap-2 sm:grid-cols-2">
+            {CHAT_MODE_OPTIONS.map((option) => (
+              <div key={option.value} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] leading-5 text-slate-600">
+                <div className="font-semibold text-slate-800">{option.label}</div>
+                <div className="mt-0.5">{option.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -352,6 +430,13 @@ function ChatBubble({ message }) {
 function StatusPanel({ status, loading, onRefresh }) {
   const configured = status?.configured === true;
   const availability = status?.availability || 'NOT_CHECKED';
+  const missingConfiguration = Array.isArray(status?.missingConfiguration)
+    ? status.missingConfiguration
+    : [];
+  const missingLabels = {
+    HERMES_AGENT_ENABLED: 'fitur Hermes diaktifkan',
+    HERMES_AGENT_API_KEY: 'API key Hermes di backend',
+  };
   return (
     <section className="surface p-5" aria-labelledby="hermes-status-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -362,6 +447,11 @@ function StatusPanel({ status, loading, onRefresh }) {
           <div>
             <h2 id="hermes-status-title" className="text-sm font-semibold text-slate-900">Konfigurasi Hermes</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">{status?.message || 'Status Hermes belum dimuat.'}</p>
+            {missingConfiguration.length > 0 && (
+              <p className="mt-1 text-xs leading-5 text-amber-700">
+                Yang masih kurang: {missingConfiguration.map((key) => missingLabels[key] || key).join(', ')}.
+              </p>
+            )}
           </div>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
@@ -370,7 +460,7 @@ function StatusPanel({ status, loading, onRefresh }) {
         </button>
       </div>
       <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-xs sm:grid-cols-3">
-        <div><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Endpoint</div><div className="mt-1 break-all font-medium text-slate-700">{status?.baseUrl || 'Belum tersedia'}</div></div>
+        <div><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Endpoint backend</div><div className="mt-1 break-all font-medium text-slate-700">{status?.baseUrl || 'Belum tersedia'}</div></div>
         <div><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Model default</div><div className="mt-1 break-all font-medium text-slate-700">{status?.model || 'Belum tersedia'}</div></div>
         <div><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ketersediaan</div><div className="mt-1 font-medium text-slate-700">{availability === 'NOT_CHECKED' ? 'Belum diprobe' : availability}</div></div>
       </div>
@@ -391,6 +481,11 @@ function StatusPanel({ status, loading, onRefresh }) {
 export default function HermesExperimentPage() {
   const [status, setStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [modelLoading, setModelLoading] = useState(false);
+  const [modelError, setModelError] = useState(null);
+  const [chatMode, setChatMode] = useState('EXPLORATORY');
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -413,9 +508,36 @@ export default function HermesExperimentPage() {
     setStatusLoading(false);
   }, []);
 
+  const loadModels = useCallback(async (refresh = false) => {
+    setModelLoading(true);
+    setModelError(null);
+    const response = await fetchHermesModels({ refresh });
+    if (response.success) {
+      const discoveredModels = response.models || [];
+      setModels(discoveredModels);
+      setSelectedModel((current) => {
+        if (current && discoveredModels.some((model) => model.id === current)) return current;
+        if (response.defaultModel && discoveredModels.some((model) => model.id === response.defaultModel)) return response.defaultModel;
+        const configuredWithoutFree = String(response.defaultModel || '').replace(/:free$/, '');
+        if (configuredWithoutFree && discoveredModels.some((model) => model.id === configuredWithoutFree)) return configuredWithoutFree;
+        const preferred = ['upstage/solar-pro4', 'deepseek/deepseek-v4-pro', 'anthropic/claude-sonnet-4.6', 'google/gemini-3.1-pro-preview'];
+        return preferred.find((candidate) => discoveredModels.some((model) => model.id === candidate)) || discoveredModels[0]?.id || '';
+      });
+    } else {
+      setModels([]);
+      setSelectedModel('');
+      setModelError(response.message || response.error || 'Daftar model Hermes belum dapat dibaca.');
+    }
+    setModelLoading(false);
+  }, []);
+
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
+
+  useEffect(() => {
+    if (status?.configured) loadModels();
+  }, [loadModels, status?.configured]);
 
   const loadMemories = useCallback(async () => {
     const response = await fetchHermesMemories({ limit: 20 });
@@ -426,7 +548,8 @@ export default function HermesExperimentPage() {
     loadMemories();
   }, [loadMemories]);
 
-  const canSend = useMemo(() => Boolean(draft.trim()) && !sending, [draft, sending]);
+  const modelReady = Boolean(selectedModel && models.some((model) => model.id === selectedModel));
+  const canSend = useMemo(() => Boolean(draft.trim()) && !sending && modelReady, [draft, sending, modelReady]);
 
   const validateIntent = async (intent) => {
     setSelectedIntent(intent);
@@ -440,10 +563,10 @@ export default function HermesExperimentPage() {
   };
 
   const runAnalysis = async () => {
-    if (!selectedIntent || !validation?.canCallHermes || analysisLoading) return;
+    if (!selectedIntent || !validation?.canCallHermes || !modelReady || analysisLoading) return;
     setAnalysisLoading(true);
     setAnalysisError(null);
-    const response = await analyzeHermes({ intent: selectedIntent });
+    const response = await analyzeHermes({ intent: selectedIntent, model: selectedModel });
     if (response.success) {
       setAnalysis(response);
       setTrackedActions({});
@@ -495,7 +618,7 @@ export default function HermesExperimentPage() {
     setError(null);
     setSending(true);
 
-    const response = await sendHermesChat(nextMessages);
+    const response = await sendHermesChat(nextMessages, chatMode, selectedModel);
     if (response.success) {
       const assistantContent = response.response?.choices?.[0]?.message?.content;
       if (assistantContent === undefined) {
@@ -529,6 +652,16 @@ export default function HermesExperimentPage() {
 
       <StatusPanel status={status} loading={statusLoading} onRefresh={loadStatus} />
 
+      <ModelSelectionPanel
+        status={status}
+        models={models}
+        selectedModel={selectedModel}
+        modelLoading={modelLoading}
+        modelError={modelError}
+        onSelect={setSelectedModel}
+        onRefresh={() => loadModels(true)}
+      />
+
       <section className="surface p-5" aria-labelledby="hermes-analysis-title">
         <div>
           <h2 id="hermes-analysis-title" className="text-sm font-semibold text-slate-900">Analisa berbasis data aplikasi</h2>
@@ -547,7 +680,7 @@ export default function HermesExperimentPage() {
           })}
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
-          {validationLoading ? <div className="inline-flex items-center gap-2 text-xs text-slate-500" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /> Memeriksa sumber dan kriteria data...</div> : <QualityPanel validation={validation} loading={validationLoading} analysisLoading={analysisLoading} onAnalyze={runAnalysis} />}
+          {validationLoading ? <div className="inline-flex items-center gap-2 text-xs text-slate-500" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /> Memeriksa sumber dan kriteria data...</div> : <QualityPanel validation={validation} loading={validationLoading} analysisLoading={analysisLoading} onAnalyze={runAnalysis} modelReady={modelReady} />}
         </div>
         {analysisError && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-800" role="alert">
@@ -614,7 +747,20 @@ export default function HermesExperimentPage() {
 
         <div className="mx-4 mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800 sm:mx-6">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-          <span>Mode chat ini bersifat eksploratif dan tidak otomatis memakai data dashboard. Untuk analisa bisnis yang berbasis bukti, gunakan tombol analisa pada intent di atas.</span>
+          <span>{chatMode === 'EXPLORATORY' ? 'Mode eksploratif tidak otomatis memakai data dashboard.' : 'Mode terarah menandai permintaan sebagai konteks yang harus dijawab lebih grounded, tetapi tetap tidak mengambil data dashboard secara otomatis.'} Untuk analisa bisnis berbasis bukti, gunakan tombol analisa pada intent di atas.</span>
+        </div>
+
+        <div className="mx-4 mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:mx-6">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Mode chat</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {CHAT_MODE_OPTIONS.map((option) => (
+              <label key={option.value} className={`cursor-pointer rounded-lg border px-3 py-2.5 text-xs transition ${chatMode === option.value ? 'border-violet-300 bg-violet-50 ring-1 ring-violet-200' : 'border-slate-200 hover:border-violet-200'}`}>
+                <input type="radio" name="hermes-chat-mode" value={option.value} checked={chatMode === option.value} onChange={(event) => setChatMode(event.target.value)} className="sr-only" />
+                <span className="font-semibold text-slate-800">{option.label}</span>
+                <span className="mt-1 block text-[11px] leading-5 text-slate-500">{option.description}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {error && (
@@ -647,7 +793,7 @@ export default function HermesExperimentPage() {
               {sending ? 'Mengirim' : 'Kirim'}
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-slate-400">Enter untuk mengirim · Shift+Enter untuk baris baru · Maksimal 10.000 karakter per pesan</p>
+          <p className="mt-2 text-[11px] text-slate-400">Model terpilih: {selectedModel || 'belum ada'} · Enter untuk mengirim · Shift+Enter untuk baris baru · Maksimal 10.000 karakter per pesan</p>
         </form>
       </section>
     </div>
