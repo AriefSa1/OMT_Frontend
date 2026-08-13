@@ -110,13 +110,6 @@ export default function DashboardOverview() {
         />
       )}
 
-      <div>
-        <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
-        <ProductOverviewPanel />
-      </div>
-
-      <StoreCrossCheckPanel />
-
       {loading ? <MetricLoading /> : (
         <>
           <h2 className="text-base font-semibold text-slate-800 mb-2">Performa Iklan</h2>
@@ -157,6 +150,13 @@ export default function DashboardOverview() {
           </div>
         </>
       )}
+
+      <div>
+        <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
+        <ProductOverviewPanel />
+      </div>
+
+      <StoreCrossCheckPanel />
 
       <DailyBriefingCard />
 
