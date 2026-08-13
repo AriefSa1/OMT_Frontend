@@ -35,7 +35,7 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
     : direction === 'flat' ? 'sama' : '';
 
   return (
-    <section className="surface min-w-0 p-4 sm:p-5">
+    <section className="surface min-w-0 p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
           {title}
@@ -43,7 +43,7 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
         </p>
         {Icon && <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tones[tone] || tones.slate}`}><Icon className="h-4 w-4" /></span>}
       </div>
-      <div className="mt-4 flex flex-wrap items-baseline gap-2">
+      <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
         {/* truncate cuts long IDR figures with no way to read them — keep the full value
             available on hover and to assistive technology. */}
         <p className="min-w-0 truncate text-2xl font-semibold text-slate-900" title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}>{value}</p>
@@ -57,7 +57,7 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
           </span>
         )}
       </div>
-      {subtitle && <p className="mt-2 text-xs leading-5 text-slate-500">{subtitle}</p>}
+      {subtitle && <p className="mt-1.5 text-xs leading-5 text-slate-500">{subtitle}</p>}
     </section>
   );
 }
