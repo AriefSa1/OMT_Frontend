@@ -9,6 +9,7 @@ import { useStore } from '../context/StoreContext';
 import { useClickOutside, useTrickleProgress } from '../lib/hooks';
 import ProgressBar from './ProgressBar';
 import { ConnectionStatusPill } from './ConnectionStatus';
+import Button from './ui/Button';
 
 // Label fase mengikuti urutan pipeline nyata di backend: katalog Shopee & Iklan berjalan
 // berbarengan lebih dulu (bagian terberat), lalu rekonsiliasi gudang. Ditampilkan sebagai
@@ -174,10 +175,9 @@ export default function Navbar({ onMenu }) {
             </Link>
           )}
 
-          <button type="button" onClick={handleSync} disabled={syncing} className="inline-flex h-9 items-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-wait disabled:opacity-70">
-            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          <Button variant="primary" onClick={handleSync} loading={syncing} icon={RefreshCw} className="disabled:cursor-wait disabled:bg-rose-600 disabled:opacity-70">
             <span className="hidden sm:inline">{syncing ? 'Menyinkronkan' : 'Sync'}</span>
-          </button>
+          </Button>
           <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
             <Link href="/account" title="Detail akun" className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-300">{user?.name?.slice(0, 1)?.toUpperCase() || <UserRound className="h-4 w-4" />}</Link>
             <div className="flex flex-col text-left">

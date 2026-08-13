@@ -7,6 +7,7 @@ import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag,
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import Button from '../../components/ui/Button';
 import ProgressBar from '../../components/ProgressBar';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import AdsAIOptimizerCard from '../../components/AdsAIOptimizerCard';
@@ -109,15 +110,9 @@ export default function AdsPage() {
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <DateRangePicker />
-            <button
-              type="button"
-              onClick={sync}
-              disabled={syncing}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70 shadow-sm transition"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="disabled:bg-rose-600 disabled:opacity-70">
               {syncing ? 'Menyinkronkan...' : 'Sync Iklan'}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -207,16 +202,15 @@ export default function AdsPage() {
               <option value="name">Nama</option>
               <option value="state">Status</option>
             </select>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              icon={ArrowUpDown}
               title="Balik arah urutan"
               aria-label="Balik arah urutan"
               onClick={() => setCampaignDirection((value) => (value === 'asc' ? 'desc' : 'asc'))}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
-              <ArrowUpDown className="h-4 w-4" />
               {campaignDirection === 'asc' ? 'Naik' : 'Turun'}
-            </button>
+            </Button>
             <Link href="/actions" className="text-xs font-semibold text-rose-700 hover:text-rose-800">
               Buka Pusat Tindakan
             </Link>

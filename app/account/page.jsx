@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CalendarDays, KeyRound, Mail, ShieldCheck, Store, UserRound } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import Button from '../../components/ui/Button';
 import { fetchAccountOverview, changeAccountPassword } from '../../lib/api';
 import { formatIDR, formatNumber } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -101,13 +102,9 @@ function PasswordCard() {
           <span className="text-xs font-medium text-slate-700">Konfirmasi sandi baru</span>
           <input type="password" value={form.confirmPassword} onChange={field('confirmPassword')} required className={inputClass} />
         </label>
-        <button
-          type="submit"
-          disabled={state.submitting}
-          className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-70"
-        >
+        <Button type="submit" variant="primary" size="lg" loading={state.submitting} className="mt-1 rounded-md disabled:bg-rose-600 disabled:opacity-70">
           {state.submitting ? 'Menyimpan…' : 'Perbarui Sandi'}
-        </button>
+        </Button>
       </form>
     </div>
   );
