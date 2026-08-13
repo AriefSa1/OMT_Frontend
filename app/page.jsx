@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, RefreshCw } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import StatTile from '../components/ui/StatTile';
+import Collapsible from '../components/ui/Collapsible';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
@@ -152,24 +153,26 @@ export default function DashboardOverview() {
         </>
       )}
 
-      <div>
-        <h2 className="text-base font-semibold text-slate-800 mb-2">Ringkasan Produk (funnel)</h2>
+      {/* Grafik penjualan tetap terlihat (visual utama). */}
+      {historyAvailable
+        ? <SalesChart data={data?.salesTrend || []} note={data?.lastSyncedAt ? `Sync terakhir: ${formatDataTime(data.lastSyncedAt)}` : undefined} />
+        : <EmptyState title="Histori pesanan belum tersedia" message={data?.history?.message} action={<Link href="/settings" className="text-xs font-semibold text-rose-700 hover:text-rose-800">Buka Pengaturan</Link>} />}
+
+      {/* Panel sekunder dilipat default agar Beranda pendek — klik untuk buka. */}
+      <Collapsible title="Ringkasan Produk (funnel)">
         <ProductOverviewPanel />
-      </div>
+      </Collapsible>
 
-      <StoreCrossCheckPanel />
+      <Collapsible title="Cross-check Toko (Shopee vs Gudang)">
+        <StoreCrossCheckPanel />
+      </Collapsible>
 
-      <DailyBriefingCard />
+      <Collapsible title="Briefing harian">
+        <DailyBriefingCard />
+      </Collapsible>
 
-      {/* Bento dashboard: grafik penjualan tampil menonjol lalu semua panel mengisi satu
-          grid rapat, bukan beberapa baris berjarak lebar dengan ruang kosong. */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          {historyAvailable
-            ? <SalesChart data={data?.salesTrend || []} note={data?.lastSyncedAt ? `Sync terakhir: ${formatDataTime(data.lastSyncedAt)}` : undefined} />
-            : <EmptyState title="Histori pesanan belum tersedia" message={data?.history?.message} action={<Link href="/settings" className="text-xs font-semibold text-rose-700 hover:text-rose-800">Buka Pengaturan</Link>} />}
-        </div>
-
+      <Collapsible title="Panel rinci" subtitle="Aktivitas sync, produk teratas, persediaan, kategori, retur, trafik">
+      <div className="grid gap-3 xl:grid-cols-3">
         <section className="surface p-5">
           <div className="flex items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Aktivitas Sync</h2><p className="mt-1 text-xs text-slate-500">Hasil jalur Sync eksplisit dan cron.</p></div><Link href="/settings" className="text-xs font-semibold text-rose-700">Lihat koneksi</Link></div>
           <div className="mt-4 space-y-3">
@@ -232,6 +235,7 @@ export default function DashboardOverview() {
 
         <TrafficSourcePanel traffic={traffic} loading={loading} />
       </div>
+      </Collapsible>
     </div>
   );
 }
