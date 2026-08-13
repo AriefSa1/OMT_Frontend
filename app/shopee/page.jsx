@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowUpDown, ChevronDown, ChevronRight, Eye, Layers, LayoutGrid, List, Package, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import Button from '../../components/ui/Button';
 import Pagination from '../../components/Pagination';
 import VariationTable from '../../components/VariationTable';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
@@ -94,7 +95,7 @@ export default function ShopeeCatalogPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Katalog Shopee" description="Snapshot katalog dari Seller Center. Pencarian dan pengurutan membaca data lokal; Sync mengambil pembaruan secara eksplisit." actions={<button type="button" onClick={sync} disabled={syncing} className="inline-flex h-9 items-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70"><RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Menyinkronkan' : 'Sync katalog'}</button>}>
+      <PageHeader title="Katalog Shopee" description="Snapshot katalog dari Seller Center. Pencarian dan pengurutan membaca data lokal; Sync mengambil pembaruan secara eksplisit." actions={<Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="disabled:bg-rose-600 disabled:opacity-70">{syncing ? 'Menyinkronkan' : 'Sync katalog'}</Button>}>
         <DataSourceNote meta={catalog?.meta} />
       </PageHeader>
 
@@ -112,7 +113,7 @@ export default function ShopeeCatalogPage() {
           <label className="relative block"><span className="sr-only">Cari produk</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama atau SKU" className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400" /></label>
           <label><span className="sr-only">Kategori</span><select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="">Semua kategori</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
           <label><span className="sr-only">Urutkan menurut</span><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="updatedAt">Pembaruan</option><option value="salesCount">Penjualan</option><option value="views">Tayangan</option><option value="stock">Stok</option><option value="price">Harga</option><option value="name">Nama</option></select></label>
-          <button type="button" onClick={() => { setDirection(direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowUpDown className="h-4 w-4" />{direction === 'asc' ? 'Naik' : 'Turun'}</button>
+          <Button variant="secondary" icon={ArrowUpDown} onClick={() => { setDirection(direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} className="h-10">{direction === 'asc' ? 'Naik' : 'Turun'}</Button>
           {/* Pengalih mode tampilan: Kartu (galeri) atau Tabel (padat) */}
           <div className="inline-flex h-10 items-center gap-1 rounded-md border border-slate-300 bg-slate-50 p-1">
             <button type="button" onClick={() => setView('cards')} aria-pressed={view === 'cards'} title="Tampilan kartu" className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition-colors ${view === 'cards' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}><LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Kartu</span></button>

@@ -25,6 +25,7 @@ import {
 import MetricCard from '../../components/MetricCard';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import Button from '../../components/ui/Button';
 import Pagination from '../../components/Pagination';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import WarehouseDetailModal from '../../components/WarehouseDetailModal';
@@ -198,15 +199,9 @@ export default function WarehousePage() {
         title="Gudang & Manajemen Stok"
         description="Inventori fisik terintegrasi dari PDC Gudang API, klasifikasi produk (Priority, Research, General), valuasi aset, lokasi rak gudang, dan rekonsiliasi Shopee."
         actions={
-          <button
-            type="button"
-            onClick={sync}
-            disabled={syncing}
-            className="inline-flex h-9 items-center gap-2 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-70 shadow-sm transition-all"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="rounded-xl px-4 font-bold disabled:bg-rose-600 disabled:opacity-70">
             {syncing ? 'Menyinkronkan PDC Gudang...' : 'Sync PDC Gudang'}
-          </button>
+          </Button>
         }
       >
         <DataSourceNote meta={inventory?.meta} />
