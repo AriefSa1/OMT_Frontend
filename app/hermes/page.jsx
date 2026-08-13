@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bot, CalendarDays, CircleAlert, CircleCheck, Info, LoaderCircle, RefreshCw, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Bot, CalendarDays, CircleAlert, CircleCheck, Info, LoaderCircle, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import ChatInput from '../../components/ui/ChatInput';
 import { analyzeHermes, deleteHermesAction, evaluateHermesAction, fetchHermesMemories, fetchHermesModels, fetchHermesStatus, sendHermesChat, submitHermesFeedback, trackHermesAction, updateHermesAction, validateHermesAnalysis } from '../../lib/api';
 
 const INTENT_OPTIONS = [
@@ -487,7 +488,6 @@ export default function HermesExperimentPage() {
   const [modelError, setModelError] = useState(null);
   const [chatMode, setChatMode] = useState('EXPLORATORY');
   const [messages, setMessages] = useState([]);
-  const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [selectedIntent, setSelectedIntent] = useState(null);
@@ -549,7 +549,6 @@ export default function HermesExperimentPage() {
   }, [loadMemories]);
 
   const modelReady = Boolean(selectedModel && models.some((model) => model.id === selectedModel));
-  const canSend = useMemo(() => Boolean(draft.trim()) && !sending && modelReady, [draft, sending, modelReady]);
 
   const validateIntent = async (intent) => {
     setSelectedIntent(intent);
@@ -607,14 +606,12 @@ export default function HermesExperimentPage() {
     } else setLearningMessage(response.message || 'Tindakan gagal dicatat.');
   };
 
-  const send = async (event) => {
-    event?.preventDefault?.();
-    const content = draft.trim();
-    if (!content || sending) return;
+  const send = async (content) => {
+    const text = String(content || '').trim();
+    if (!text || sending) return;
 
-    const nextMessages = [...messages, { role: 'user', content }];
+    const nextMessages = [...messages, { role: 'user', content: text }];
     setMessages(nextMessages);
-    setDraft('');
     setError(null);
     setSending(true);
 
@@ -717,7 +714,7 @@ export default function HermesExperimentPage() {
       {learningMessage && <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-xs text-violet-800" role="status">{learningMessage}</div>}
       <LearningPanel memories={memories} onRefresh={loadMemories} onMessage={setLearningMessage} />
 
-      <section className="surface overflow-hidden" aria-labelledby="hermes-chat-title">
+      <section className="surface" aria-labelledby="hermes-chat-title">
         <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="hermes-chat-title" className="text-sm font-semibold text-slate-900">Hermes Chat</h2>
@@ -770,31 +767,15 @@ export default function HermesExperimentPage() {
           </div>
         )}
 
-        <form onSubmit={send} className="border-t border-slate-200 bg-white p-4 sm:p-6">
-          <label htmlFor="hermes-message" className="sr-only">Pesan untuk Hermes Agent</label>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <textarea
-              id="hermes-message"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-              rows={3}
-              maxLength={10000}
-              placeholder="Tulis pesan untuk Hermes Agent..."
-              className="ui-input min-h-20 flex-1 resize-y rounded-lg px-3 py-2.5 text-sm leading-6"
-            />
-            <button type="submit" disabled={!canSend} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-28">
-              {sending ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-              {sending ? 'Mengirim' : 'Kirim'}
-            </button>
-          </div>
-          <p className="mt-2 text-[11px] text-slate-400">Model terpilih: {selectedModel || 'belum ada'} · Enter untuk mengirim · Shift+Enter untuk baris baru · Maksimal 10.000 karakter per pesan</p>
-        </form>
+        <ChatInput
+          onSend={send}
+          sending={sending}
+          disabled={!modelReady}
+          maxLength={10000}
+          placeholder="Tulis pesan untuk Hermes Agent..."
+          helperText={`Model terpilih: ${selectedModel || 'belum ada'} · Enter untuk mengirim · Shift+Enter baris baru`}
+          className="rounded-b-lg"
+        />
       </section>
     </div>
   );
