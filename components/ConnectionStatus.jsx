@@ -166,6 +166,10 @@ export function ConnectionStatusPill() {
   const ref = useRef(null);
 
   const onLeave = useCallback(() => setOpen(false), []);
+  const primaryView = viewFor(data?.shopee, loading);
+  const syncLabel = checkedAt
+    ? `Tersinkron ${new Date(checkedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+    : primaryView.label;
 
   return (
     <div
@@ -177,17 +181,10 @@ export function ConnectionStatusPill() {
       <Link
         href="/settings"
         title="Status koneksi sumber data"
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-xs hover:border-slate-300 hover:bg-slate-50 transition"
+        className="connection-pill inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-xs hover:border-slate-300 hover:bg-slate-50 transition"
       >
-        {SOURCES.map(({ key, short, SourceIcon }) => {
-          const view = viewFor(data?.[key], loading);
-          return (
-            <span key={key} className="inline-flex items-center gap-1" title={`${short}: ${view.label}`}>
-              <SourceIcon className="h-3.5 w-3.5 text-slate-400" />
-              <span className={`h-2 w-2 rounded-full ${view.dot}`} />
-            </span>
-          );
-        })}
+        <span className={`connection-dot h-2 w-2 rounded-full ${primaryView.dot}`} />
+        <span>{syncLabel}</span>
       </Link>
 
       {open && (

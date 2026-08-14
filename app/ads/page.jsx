@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowUpDown, BarChart3, Eye, MousePointerClick, RefreshCw, ShoppingBag, Target } from 'lucide-react';
-import MetricCard from '../../components/MetricCard';
+import { ArrowUpDown, RefreshCw } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/ui/Button';
@@ -25,6 +24,23 @@ const AdsTrendChart = dynamic(() => import('../../components/AdsTrendChart'), {
   ssr: false,
   loading: () => <div className="skeleton h-full min-h-[320px] rounded-md" />,
 });
+
+function AdsPerformanceBand({ ads }) {
+  const traffic = [
+    { label: 'Iklan dilihat', value: formatNumber(ads?.impressions), trend: ads?.trend?.impressions },
+    { label: 'Jumlah klik', value: formatNumber(ads?.clicks), trend: ads?.trend?.clicks },
+    { label: 'Persentase klik', value: ads?.ctr !== null && ads?.ctr !== undefined ? formatPercent(ads.ctr) : '-', trend: ads?.trend?.ctr },
+    { label: 'Pesanan', value: formatNumber(ads?.orders), trend: ads?.trend?.orders },
+    { label: 'Produk terjual', value: formatNumber(ads?.itemSold), trend: ads?.trend?.itemSold },
+  ];
+  const outcomes = [
+    { label: 'Penjualan iklan', value: formatIDR(ads?.totalSalesGenerated), trend: ads?.trend?.sales },
+    { label: 'Biaya iklan', value: formatIDR(ads?.totalSpend), trend: ads?.trend?.spend },
+    { label: 'ROAS', value: ads?.roas === null || ads?.roas === undefined ? 'Belum tersedia' : `${Number(ads.roas).toFixed(2).replace('.', ',')}x`, trend: ads?.trend?.roas },
+  ];
+  const trendLabel = (trend) => trend?.direction && Number.isFinite(Number(trend.changePercent)) ? `${Number(trend.changePercent) > 0 ? '+' : ''}${Number(trend.changePercent).toFixed(1)}%` : null;
+  return <section className="ads-performance-band" aria-label="Ringkasan performa iklan"><div className="ads-band-group"><p>Performa trafik</p><div>{traffic.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong>{trendLabel(item.trend) && <em>{trendLabel(item.trend)}</em>}</article>)}</div></div><div className="ads-band-group ads-band-outcomes"><p>Hasil iklan</p><div>{outcomes.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong>{trendLabel(item.trend) && <em>{trendLabel(item.trend)}</em>}</article>)}</div></div></section>;
+}
 
 export default function AdsPage() {
   const [ads, setAds] = useState(null);
@@ -104,14 +120,14 @@ export default function AdsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="ads-workspace">
       <PageHeader
         title="Iklan"
         description="Kinerja kampanye Product Ads dari Shopee Seller Center secara langsung dan snapshot historis."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <DateRangePicker />
-            <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="disabled:bg-rose-600 disabled:opacity-70">
+            <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="ads-sync-button">
               {syncing ? 'Menyinkronkan...' : 'Sync Iklan'}
             </Button>
           </div>
@@ -132,29 +148,20 @@ export default function AdsPage() {
         <ProgressBar value={syncProgress.value} label="Menyinkronkan data iklan…" showValue height={5} />
       )}
 
-      <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard title="Iklan Dilihat" value={formatNumber(ads?.impressions)} icon={Eye} trend={ads?.trend?.impressions} tone="slate" tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
-        <MetricCard title="Jumlah Klik" value={formatNumber(ads?.clicks)} icon={MousePointerClick} trend={ads?.trend?.clicks} tone="slate" tip="Jumlah klik pada iklan." />
-        <MetricCard title="Persentase Klik" value={ads?.ctr !== null && ads?.ctr !== undefined ? formatPercent(ads?.ctr) : '-'} icon={MousePointerClick} trend={ads?.trend?.ctr} tone="slate" tip="Persentase klik pada iklan (CTR)." />
-        <MetricCard title="Pesanan" value={formatNumber(ads?.orders)} icon={ShoppingBag} trend={ads?.trend?.orders} tone="slate" tip="Jumlah pesanan yang dihasilkan dari iklan." />
-        <MetricCard title="Produk Terjual" value={formatNumber(ads?.itemSold)} icon={ShoppingBag} trend={ads?.trend?.itemSold} tone="slate" tip="Jumlah produk yang terjual dari iklan." />
-        <MetricCard title="Penjualan dari Iklan" value={formatIDR(ads?.totalSalesGenerated)} icon={BarChart3} trend={ads?.trend?.sales} tone="slate" tip="Total nilai penjualan dari iklan." />
-        <MetricCard title="Biaya Iklan" value={formatIDR(ads?.totalSpend)} icon={BarChart3} trend={ads?.trend?.spend} tone="slate" tip="Total biaya yang dihabiskan untuk iklan." />
-        <MetricCard title="ROAS" value={ads?.roas === null || ads?.roas === undefined ? '0,00' : `${Number(ads.roas).toFixed(2).replace('.', ',')}`} icon={Target} trend={ads?.trend?.roas} tone="rose" tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
-      </div>
+      <AdsPerformanceBand ads={ads} />
 
       {/* Bento: grafik tren iklan menonjol (2 kolom) di samping AI Optimizer (1 kolom). */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+      <div className="ads-workbench">
+        <div className="ads-trend-slot">
           <AdsTrendChart data={ads?.history || []} />
         </div>
-        <div className="xl:col-span-1">
+        <div className="ads-insight-slot">
           <AdsAIOptimizerCard adsData={ads} />
         </div>
       </div>
 
-      <section className="surface overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="ads-campaign-ledger">
+        <div className="ads-campaign-header">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-slate-900">Kampanye Produk</h2>
@@ -199,7 +206,7 @@ export default function AdsPage() {
             >
               {campaignDirection === 'asc' ? 'Naik' : 'Turun'}
             </Button>
-            <Link href="/actions" className="text-xs font-semibold text-rose-700 hover:text-rose-800">
+            <Link href="/actions" className="text-xs font-semibold text-teal-700 hover:text-teal-800">
               Buka Pusat Tindakan
             </Link>
           </div>
@@ -238,7 +245,7 @@ export default function AdsPage() {
                     </tr>
                   ))}
                 {filteredCampaigns.map((campaign) => (
-                  <tr key={campaign.id || campaign.campaignId} className="hover:bg-slate-50">
+                  <tr key={campaign.id || campaign.campaignId} className="ads-campaign-row">
                     <td className="px-5 py-3">
                       <p className="max-w-72 truncate font-semibold text-slate-800">{campaign.name}</p>
                       <p className="mt-1 text-[11px] text-slate-500">{campaign.type}</p>
@@ -261,9 +268,9 @@ export default function AdsPage() {
         )}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="surface overflow-hidden">
-          <div className="border-b border-slate-200 px-5 py-4">
+      <div className="ads-lower-grid">
+        <section className="ads-history-panel">
+          <div className="ads-panel-header">
             <h2 className="text-sm font-semibold text-slate-900">Histori Snapshot Harian</h2>
             <p className="mt-1 text-xs text-slate-500">Ringkasan tersimpan per hari sinkronisasi.</p>
           </div>
@@ -300,7 +307,7 @@ export default function AdsPage() {
           </div>
         </section>
 
-        <section className="surface p-5">
+        <section className="ads-audit-panel">
           <h2 className="text-sm font-semibold text-slate-900">Audit Normalisasi Nominal</h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Nilai mentah disimpan untuk penelusuran. Nilai yang ditampilkan di halaman ini adalah nilai mentah dibagi pembagi transaksi Shopee.

@@ -74,7 +74,7 @@ function LoginFormContent() {
     <div className="grid min-h-screen bg-slate-50 lg:grid-cols-[minmax(0,1fr)_520px]">
       <section className="hidden border-r border-slate-200 bg-white p-12 lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-rose-600 text-white">
+          <span className="brand-mark inline-flex h-9 w-9 items-center justify-center rounded-md text-white">
             <BarChart3 className="h-5 w-5" />
           </span>
           <span>
@@ -97,7 +97,7 @@ function LoginFormContent() {
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-rose-600 text-white">
+              <span className="brand-mark inline-flex h-9 w-9 items-center justify-center rounded-md text-white">
                 <BarChart3 className="h-5 w-5" />
               </span>
               <span className="text-sm font-semibold text-slate-900">Pusat Operasi</span>
@@ -122,7 +122,7 @@ function LoginFormContent() {
               }}
               className={`h-10 border-b-2 px-3 text-sm font-medium transition-colors ${
                 mode === 'login'
-                  ? 'border-rose-600 text-rose-700'
+                  ? 'border-teal-600 text-teal-800'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -136,7 +136,7 @@ function LoginFormContent() {
               }}
               className={`h-10 border-b-2 px-3 text-sm font-medium transition-colors ${
                 mode === 'register'
-                  ? 'border-rose-600 text-rose-700'
+                  ? 'border-teal-600 text-teal-800'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -168,7 +168,7 @@ function LoginFormContent() {
                     onChange={field('name')}
                     required
                     placeholder="Nama Anda"
-                    className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none"
+                    className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                   />
                 </span>
               </label>
@@ -184,7 +184,7 @@ function LoginFormContent() {
                   onChange={field('email')}
                   required
                   placeholder="nama@perusahaan.com"
-                  className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none"
+                  className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                 />
               </span>
             </label>
@@ -199,7 +199,7 @@ function LoginFormContent() {
                   onChange={field('password')}
                   required
                   placeholder="Minimal 6 karakter"
-                  className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none"
+                  className="h-10 w-full rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                 />
               </span>
             </label>
@@ -214,7 +214,7 @@ function LoginFormContent() {
                     onChange={field('confirmPassword')}
                     required
                     placeholder="Ulangi password"
-                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none"
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                   />
                 </label>
 
@@ -227,7 +227,7 @@ function LoginFormContent() {
                       value={form.registrationSecret}
                       onChange={field('registrationSecret')}
                       placeholder="Contoh: REG-XXXX-2026"
-                      className="h-10 w-full font-mono uppercase rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none"
+                      className="h-10 w-full font-mono uppercase rounded-md border border-slate-300 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
                     />
                   </span>
                   <span className="mt-1 block text-[11px] text-slate-500">
@@ -240,7 +240,7 @@ function LoginFormContent() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-rose-600 px-3 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-70"
+              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-teal-600 px-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-70"
             >
               {submitting
                 ? 'Memproses...'

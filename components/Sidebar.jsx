@@ -13,9 +13,10 @@ const NAV_GROUPS = [
     ],
   },
   {
-    title: 'Analistik Shopee',
+    title: 'Analitik Shopee',
     items: [
       { label: 'Katalog Produk', href: '/shopee', icon: Store },
+      { label: 'Performa Produk', href: '/shopee/performance', icon: TrendingUp },
       { label: 'Detail Pesanan', href: '/orders', icon: ShoppingBag },
       { label: 'Iklan', href: '/ads', icon: Megaphone },
       { label: 'Promosi', href: '/promotions', icon: Tag },
@@ -71,32 +72,32 @@ function isActivePath(pathname, href) {
 
 export default function Sidebar({ mobile = false, onClose }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
   const content = (
-    <div className="flex h-full flex-col bg-white">
-      <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
+    <div className="app-sidebar flex h-full flex-col bg-white text-slate-800">
+      <div className="flex h-[4.5rem] items-center justify-between border-b border-slate-200 px-4">
         <Link href="/" onClick={onClose} className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-sm">
+          <span className="brand-mark inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-white shadow-sm ring-1 ring-white/30">
             <BarChart3 className="h-5 w-5" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-slate-900">Pusat Operasi</span>
-            <span className="block truncate text-[11px] font-medium text-slate-500">Shopee & Gudang Analytics</span>
+            <span className="block truncate text-[13px] font-bold tracking-tight text-teal-800">Pusat Operasi</span>
+            <span className="block truncate text-[10px] font-medium text-slate-500">Shopee & Gudang Analytics</span>
           </span>
         </Link>
         {mobile && (
-          <button type="button" title="Tutup navigasi" aria-label="Tutup navigasi" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100">
+          <button type="button" title="Tutup navigasi" aria-label="Tutup navigasi" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-800">
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto space-y-4 p-3" aria-label="Navigasi utama">
+      <nav className="flex-1 overflow-y-auto space-y-3 p-2.5" aria-label="Navigasi utama">
         {NAV_GROUPS.map((group) => (
           <div key={group.title} className="space-y-1">
-            <div className="px-3 text-[10px] font-black tracking-wider text-slate-400 uppercase">
+            <div className="px-2.5 text-[9px] font-bold tracking-[0.14em] text-slate-400 uppercase">
               {group.title}
             </div>
             {group.items.map(({ label, href, icon: Icon, maintenance }) => {
@@ -108,7 +109,7 @@ export default function Sidebar({ mobile = false, onClose }) {
                     key={href}
                     aria-disabled="true"
                     title="Fitur sedang dalam perawatan — belum bisa dibuka."
-                    className="flex h-9 cursor-not-allowed select-none items-center gap-3 rounded-lg px-3 text-xs font-semibold text-slate-400 opacity-70"
+                    className="flex h-8 cursor-not-allowed select-none items-center gap-2.5 rounded-md px-2.5 text-[11px] font-semibold text-slate-400 opacity-70"
                   >
                     <Icon className="h-4 w-4 shrink-0 text-slate-300" />
                     <span className="flex-1 truncate">{label}</span>
@@ -124,13 +125,13 @@ export default function Sidebar({ mobile = false, onClose }) {
                   key={href}
                   href={href}
                   onClick={onClose}
-                  className={`flex h-9 items-center gap-3 rounded-lg px-3 text-xs font-semibold transition-all ${
+                  className={`nav-link flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[11px] font-semibold transition-all ${
                     active
-                      ? 'bg-rose-50 text-rose-700 shadow-xs border border-rose-100/60'
-                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                      ? 'nav-link-active border border-transparent text-teal-800'
+                      : 'text-slate-600 hover:bg-teal-50 hover:text-teal-900'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-rose-600' : 'text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-teal-700' : 'text-slate-400'}`} />
                   <span>{label}</span>
                 </Link>
               );
@@ -139,21 +140,21 @@ export default function Sidebar({ mobile = false, onClose }) {
         ))}
 
         {isAdmin && (
-          <div className="space-y-1 pt-1 border-t border-slate-100">
-            <div className="px-3 text-[10px] font-black tracking-wider text-rose-500 uppercase">
+          <div className="space-y-1 border-t border-slate-200 pt-3">
+            <div className="px-2.5 text-[9px] font-bold tracking-[0.14em] text-slate-400 uppercase">
               Administrasi
             </div>
             <Link
               href="/admin"
               onClick={onClose}
-              className={`flex h-9 items-center justify-between rounded-lg px-3 text-xs font-semibold transition-all ${
+                className={`nav-link flex h-8 items-center justify-between rounded-md px-2.5 text-[11px] font-semibold transition-all ${
                 isActivePath(pathname, '/admin')
-                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'nav-link-active border border-transparent text-teal-800'
+                  : 'text-slate-600 hover:bg-teal-50 hover:text-teal-900'
               }`}
             >
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-rose-600" />
+                <ShieldCheck className="h-4 w-4 shrink-0 text-teal-700" />
                 <span>Panel Admin</span>
               </div>
               <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-black text-rose-700">
@@ -164,12 +165,15 @@ export default function Sidebar({ mobile = false, onClose }) {
         )}
       </nav>
 
-      <div className="border-t border-slate-100 p-3 bg-slate-50/50 text-[11px] leading-relaxed text-slate-500 rounded-b-xl">
-        <div className="flex items-center gap-1.5 font-semibold text-slate-700 mb-0.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Status Sistem Aktif</span>
-        </div>
-        Snapshot lokal disinkronkan otomatis.
+      <div className="sidebar-account">
+        <Link href="/account" onClick={onClose} className="sidebar-account-link" title="Detail akun">
+          <span className="sidebar-avatar">{user?.name?.slice(0, 2)?.toUpperCase() || 'AK'}</span>
+          <span className="sidebar-account-copy">
+            <b>{user?.name || 'Akun'}</b>
+            <span>{user?.role === 'ADMIN' ? 'Administrator' : user?.role || 'Pengguna'}</span>
+          </span>
+        </Link>
+        <button type="button" className="sidebar-logout" onClick={logout} title="Keluar">Keluar</button>
       </div>
     </div>
   );
@@ -181,5 +185,5 @@ export default function Sidebar({ mobile = false, onClose }) {
       </div>
     );
   }
-  return <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 lg:block">{content}</aside>;
+  return <aside className="app-sidebar-shell fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-slate-200 lg:block">{content}</aside>;
 }

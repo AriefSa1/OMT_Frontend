@@ -16,11 +16,11 @@ import InfoTooltip from './InfoTooltip';
  */
 export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 'slate', trend = null, invertTrendColor = false, tip = null }) {
   const tones = {
-    slate: 'bg-slate-100 text-slate-700',
+    slate: 'bg-teal-50 text-teal-800',
     rose: 'bg-rose-50 text-rose-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
+    emerald: 'bg-teal-100 text-teal-800',
     amber: 'bg-amber-50 text-amber-700',
-    blue: 'bg-blue-50 text-blue-700',
+    blue: 'bg-teal-50 text-teal-800',
   };
 
   const direction = trend?.direction || null;
@@ -35,18 +35,18 @@ export default function MetricCard({ title, value, icon: Icon, subtitle, tone = 
     : direction === 'flat' ? 'sama' : '';
 
   return (
-    <section className="surface min-w-0 p-4">
+    <section className="surface metric-card min-w-0 p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
+        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
           {title}
           {tip && <InfoTooltip label={title}>{tip}</InfoTooltip>}
         </p>
-        {Icon && <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tones[tone] || tones.slate}`}><Icon className="h-4 w-4" /></span>}
+        {Icon && <span className={`metric-icon inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tones[tone] || tones.slate}`}><Icon className="h-4 w-4" /></span>}
       </div>
       <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
         {/* truncate cuts long IDR figures with no way to read them — keep the full value
             available on hover and to assistive technology. */}
-        <p className="min-w-0 truncate text-2xl font-semibold text-slate-900" title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}>{value}</p>
+        <p className="min-w-0 truncate text-[1.7rem] font-bold tracking-[-0.04em] text-slate-950" title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}>{value}</p>
         {direction && (
           <span
             className={`inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${trendClass}`}

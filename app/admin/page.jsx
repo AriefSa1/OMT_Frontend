@@ -469,7 +469,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="w-full space-y-4">
       {/* Toast Alert */}
       {toastMessage && (
         <div
@@ -1416,7 +1416,7 @@ export default function AdminPage() {
       {/* TAB 4: HAK AKSES PERAN & KEAMANAN SISTEM */}
       {/* ========================================================================= */}
       {activeTab === 'access' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* RBAC Comparison Table */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">

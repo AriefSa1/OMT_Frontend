@@ -10,7 +10,7 @@ import { formatIDR, formatNumber } from '../lib/utils';
 import { SkeletonLine } from './Skeleton';
 
 // Palet stabil per posisi toko, dipakai untuk garis grafik dan penanda.
-const SERIES_COLORS = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2'];
+const SERIES_COLORS = ['#08776d', '#0f9d8a', '#65c7b7', '#c28728', '#6b7c80', '#b8ccc8'];
 
 const METRIC_ROWS = [
   { label: 'Omzet', get: (m) => formatIDR(m?.gmv || 0) },
@@ -27,7 +27,7 @@ const METRIC_ROWS = [
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs shadow-md">
+    <div className="chart-tooltip rounded-md border border-teal-200 bg-white p-2.5 text-xs shadow-lg">
       <p className="mb-1 font-semibold text-slate-700">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} className="flex items-center gap-1.5">
@@ -97,7 +97,7 @@ export default function AdminStoreCompare({ storeIds, days, onBack }) {
 
       {loading ? (
         <div className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="surface chart-panel p-5">
             <SkeletonLine width="30%" className="h-4" />
             <div className="mt-4 flex h-56 items-end gap-2">
               {[45, 70, 35, 85, 55, 60, 40, 75, 50, 65].map((h, i) => (
@@ -112,14 +112,14 @@ export default function AdminStoreCompare({ storeIds, days, onBack }) {
       ) : (
         <div className="fade-in space-y-5">
           {/* Grafik tren omzet harian */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="surface chart-panel p-5">
             <h3 className="text-sm font-semibold text-slate-900">Tren Omzet Harian</h3>
             <div className="mt-4 h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={28} tick={{ fill: '#667085', fontSize: 11 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#667085', fontSize: 11 }} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toFixed(0)}jt` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}rb` : v)} width={44} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#d7e3e0" vertical={false} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={28} tick={{ fill: '#6b7c80', fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7c80', fontSize: 10 }} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toFixed(0)}jt` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}rb` : v)} width={44} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   {stores.map((s, i) => (

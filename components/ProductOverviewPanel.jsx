@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, AreaChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
 import { Users, Eye, ShoppingCart, PackageCheck, Wallet, Percent } from 'lucide-react';
 import MetricCard from './MetricCard';
@@ -101,13 +101,20 @@ export default function ProductOverviewPanel() {
   }, [series, metricKey]);
 
   return (
-    <section className="space-y-4">
+    <section className="product-overview-panel surface p-5">
+      <header className="product-overview-header">
+        <div>
+          <p className="product-overview-kicker">Perilaku katalog</p>
+          <h2>Funnel produk</h2>
+        </div>
+        <span>Pengunjung → keranjang → pembeli</span>
+      </header>
       {message && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{message}</p>
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{message}</p>
       )}
 
       {/* KPI funnel */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+      <div className="product-funnel-grid">
         {CARD_DEFS.map((def) => {
           const cell = overview?.[def.key];
           const value = loading ? '…' : cell ? fmtValue(cell.value, def.type) : '—';
@@ -125,7 +132,7 @@ export default function ProductOverviewPanel() {
         })}
       </div>
 
-      <p className="text-[11px] leading-5 text-slate-500">
+      <p className="product-overview-note">
         Angka disamakan dengan dashboard Shopee “Tinjauan Produk”. Preset dipetakan ke jendela Shopee:
         Hari ini→<b>real_time</b>, Kemarin→<b>yesterday</b>, 7/30 hari→<b>past7/30days</b>. Shopee tak punya
         jendela “bulan kalender”, jadi <b>Bulan ini</b> & <b>Custom</b> dibulatkan ke past7/past30days
@@ -133,7 +140,7 @@ export default function ProductOverviewPanel() {
       </p>
 
       {/* Grafik tren */}
-      <section className="surface p-5">
+        <section className="product-trend-panel">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">Tren metrik produk</h2>
           <select
@@ -153,26 +160,20 @@ export default function ProductOverviewPanel() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorOverview" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0d7d84" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#0d7d84" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e7ec" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={24} tick={{ fill: '#667085', fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="#d7e3e0" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={24} tick={{ fill: '#6b7c80', fontSize: 10 }} />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   width={54}
-                  tick={{ fill: '#667085', fontSize: 11 }}
+                  tick={{ fill: '#6b7c80', fontSize: 10 }}
                   tickFormatter={(v) => (activeMetric.type === 'idr' ? `${Math.round(Number(v) / 1000)}k` : formatNumber(v))}
                 />
                 <Tooltip
                   formatter={(v) => [fmtValue(v, activeMetric.type), activeMetric.label]}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #e4e7ec', fontSize: 12 }}
+                  contentStyle={{ borderRadius: 6, border: '1px solid #cbdcd8', fontSize: 12 }}
                 />
-                <Area type="monotone" dataKey="value" name={activeMetric.label} stroke="#0d7d84" strokeWidth={2} fill="url(#colorOverview)" dot={chartData.length <= 3 ? { r: 3, fill: '#0d7d84' } : false} />
+                <Line type="monotone" dataKey="value" name={activeMetric.label} stroke="#0f9d8a" strokeWidth={2.5} dot={chartData.length <= 3 ? { r: 3, fill: '#0f9d8a' } : false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

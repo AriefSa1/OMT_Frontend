@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, Menu, Plus, RefreshCw, ShieldCheck, Store, UserRound } from 'lucide-react';
 import { fetchConnectionStatus, triggerSyncAndPoll } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -20,12 +21,36 @@ function syncPhaseLabel(value) {
   return 'Mengambil katalog & iklan Shopee…';
 }
 
+const PAGE_TITLES = [
+  ['/', 'Beranda'],
+  ['/shopee/performance', 'Performa Produk'],
+  ['/shopee', 'Katalog Produk'],
+  ['/orders', 'Detail Pesanan'],
+  ['/ads', 'Iklan'],
+  ['/promotions', 'Promosi'],
+  ['/warehouse/reconciliation', 'Rekonsiliasi Stok'],
+  ['/warehouse/performance', 'Performa Marketplace'],
+  ['/warehouse', 'Inventaris Stok'],
+  ['/optimization', 'Pusat Optimasi'],
+  ['/growth', 'Wawasan Growth'],
+  ['/actions', 'Aksi & Tugas'],
+  ['/settings', 'Pengaturan Koneksi'],
+  ['/admin', 'Panel Admin'],
+  ['/account', 'Akun'],
+  ['/hermes', 'Hermes Agent'],
+];
+
+function getPageTitle(pathname) {
+  return PAGE_TITLES.find(([href]) => pathname === href || pathname.startsWith(`${href}/`))?.[1] || 'Pusat Operasi';
+}
+
 export default function Navbar({ onMenu }) {
   const [syncing, setSyncing] = useState(false);
   const [status, setStatus] = useState(null);
   const [message, setMessage] = useState('');
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
   const progress = useTrickleProgress();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const { stores, selectedStoreId, selectedStore, switchStore } = useStore();
   const isAdmin = user?.role === 'ADMIN';
@@ -57,20 +82,21 @@ export default function Navbar({ onMenu }) {
   const currentDisplayName = selectedStore?.storeName || (stores.length === 1 ? stores[0]?.storeName : null) || (stores.length > 1 && !selectedStoreId ? 'Semua Toko Terhubung' : status?.connections?.shopee?.storeName || 'Toko belum terhubung');
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-[#f6f7f9]">
-      <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <button type="button" title="Buka navigasi" aria-label="Buka navigasi" onClick={onMenu} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 lg:hidden"><Menu className="h-4 w-4" /></button>
+    <header className="app-header sticky top-0 z-20 border-b border-slate-200">
+      <div className="app-header-row flex h-[4.5rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
+        <div className="app-header-left flex min-w-0 items-center gap-3">
+          <button type="button" title="Buka navigasi" aria-label="Buka navigasi" onClick={onMenu} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-teal-800 shadow-sm lg:hidden"><Menu className="h-4 w-4" /></button>
+          <h1 className="nav-page-title truncate">{getPageTitle(pathname)}</h1>
           
           {/* Store Switcher Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setStoreDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-left text-xs shadow-xs hover:border-slate-300 hover:bg-slate-50 transition"
+              className="store-switcher flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-left text-xs shadow-sm transition"
               title="Pilih Toko"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-50 text-rose-600">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-100 text-teal-800">
                 <Store className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0 max-w-[160px] sm:max-w-[220px]">
@@ -85,7 +111,7 @@ export default function Navbar({ onMenu }) {
             </button>
 
             {storeDropdownOpen && (
-              <div className="dropdown-panel absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5 z-50">
+              <div className="dropdown-panel absolute left-0 top-full z-50 mt-1.5 w-64 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5">
                 <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   Daftar Toko Shopee
                 </div>
@@ -98,7 +124,7 @@ export default function Navbar({ onMenu }) {
                       setStoreDropdownOpen(false);
                     }}
                     className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs transition ${
-                      !selectedStoreId ? 'bg-rose-50 text-rose-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+                      !selectedStoreId ? 'bg-teal-50 text-teal-800 font-semibold' : 'text-slate-700 hover:bg-teal-50/60'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -124,7 +150,7 @@ export default function Navbar({ onMenu }) {
                             setStoreDropdownOpen(false);
                           }}
                           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs transition ${
-                            isSelected ? 'bg-rose-50 text-rose-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+                            isSelected ? 'bg-teal-50 text-teal-800 font-semibold' : 'text-slate-700 hover:bg-teal-50/60'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
@@ -149,7 +175,7 @@ export default function Navbar({ onMenu }) {
                   <Link
                     href="/settings"
                     onClick={() => setStoreDropdownOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-900"
                   >
                     <Plus className="h-3.5 w-3.5 text-slate-400" />
                     <span>Tambah / Kelola Toko</span>
@@ -164,27 +190,27 @@ export default function Navbar({ onMenu }) {
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="app-header-right flex min-w-0 items-center gap-2">
           {isAdmin && (
             <Link
               href="/admin"
-              className="hidden items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 sm:inline-flex"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Panel Admin</span>
             </Link>
           )}
 
-          <Button variant="primary" onClick={handleSync} loading={syncing} icon={RefreshCw} className="disabled:cursor-wait disabled:bg-rose-600 disabled:opacity-70">
+          <Button variant="primary" onClick={handleSync} loading={syncing} icon={RefreshCw} className="min-w-[5.5rem] disabled:cursor-wait disabled:bg-teal-600 disabled:opacity-70">
             <span className="hidden sm:inline">{syncing ? 'Menyinkronkan' : 'Sync'}</span>
           </Button>
           <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
-            <Link href="/account" title="Detail akun" className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-300">{user?.name?.slice(0, 1)?.toUpperCase() || <UserRound className="h-4 w-4" />}</Link>
+            <Link href="/account" title="Detail akun" className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-teal-100 text-xs font-semibold text-teal-800 hover:bg-teal-200">{user?.name?.slice(0, 1)?.toUpperCase() || <UserRound className="h-4 w-4" />}</Link>
             <div className="flex flex-col text-left">
               <Link href="/account" className="max-w-28 truncate text-xs font-medium text-slate-700 hover:text-rose-700" title="Detail akun">{user?.name || 'Akun'}</Link>
               <span className="text-[10px] font-semibold text-slate-400">{user?.role || 'USER'}</span>
             </div>
-            <button type="button" onClick={logout} className="ml-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:border-rose-200 hover:text-rose-700" title="Keluar">Keluar</button>
+            <button type="button" onClick={logout} className="ml-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:border-teal-200 hover:text-teal-700" title="Keluar">Keluar</button>
           </div>
         </div>
       </div>

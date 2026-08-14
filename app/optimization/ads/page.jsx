@@ -31,7 +31,7 @@ export default function AdsOptimizationPage() {
   const roas = data?.currentROAS;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Optimasi iklan"
         description="Rekomendasi kampanye dari snapshot iklan Shopee. Perubahan bid dan anggaran tetap dilakukan manual di Seller Center."

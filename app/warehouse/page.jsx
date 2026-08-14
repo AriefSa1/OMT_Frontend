@@ -194,12 +194,12 @@ export default function WarehousePage() {
   const teamOptions = inventory?.filters?.teams || [];
 
   return (
-    <div className="space-y-6">
+    <div className="warehouse-workspace">
       <PageHeader
         title="Gudang & Manajemen Stok"
         description="Inventori fisik terintegrasi dari PDC Gudang API, klasifikasi produk (Priority, Research, General), valuasi aset, lokasi rak gudang, dan rekonsiliasi Shopee."
         actions={
-          <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="rounded-xl px-4 font-bold disabled:bg-rose-600 disabled:opacity-70">
+          <Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="warehouse-sync-button">
             {syncing ? 'Menyinkronkan PDC Gudang...' : 'Sync PDC Gudang'}
           </Button>
         }
@@ -214,7 +214,7 @@ export default function WarehousePage() {
       )}
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="warehouse-summary-band">
         <MetricCard
           title="Total SKU Terdata"
           value={formatNumber(inventory?.totalSkus)}
@@ -273,7 +273,7 @@ export default function WarehousePage() {
       </div>
 
       {/* Main Section */}
-      <section className="surface overflow-hidden rounded-3xl border border-slate-200/80 shadow-sm bg-white">
+      <section className="warehouse-ledger">
         {/* Type Tabs Filter Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3.5">
           <div className="flex flex-wrap items-center gap-2">

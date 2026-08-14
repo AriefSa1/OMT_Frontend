@@ -39,6 +39,7 @@ export default function PromotionsPage() {
   const [discounts, setDiscounts] = useState([]);
   const [discLoading, setDiscLoading] = useState(true);
   const [discMsg, setDiscMsg] = useState('');
+  const [discAvailable, setDiscAvailable] = useState(false);
 
   // Voucher
   const [vouchers, setVouchers] = useState([]);
@@ -51,6 +52,7 @@ export default function PromotionsPage() {
     setDiscLoading(true);
     const res = await fetchDiscountPerformance({ storeId: selectedStoreId || null, startDate, endDate });
     setDiscounts(res?.promotions || []);
+    setDiscAvailable(Boolean(res?.success));
     setDiscMsg(res?.success ? '' : (res?.message || ''));
     setDiscLoading(false);
   }, [selectedStoreId, startDate, endDate]);
@@ -73,7 +75,7 @@ export default function PromotionsPage() {
   const voucherPages = Math.max(1, Math.ceil(voucherTotal / VOUCHER_LIMIT));
 
   return (
-    <div className="space-y-4">
+    <div className="promotions-workspace">
       <PageHeader
         title="Promosi"
         description="Performa promo diskon dan daftar voucher toko dari Shopee Seller Center."
@@ -81,18 +83,18 @@ export default function PromotionsPage() {
       />
 
       {/* Tabs */}
-      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+      <div className="promotions-tabs">
         <button
           type="button"
           onClick={() => setTab('discounts')}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === 'discounts' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === 'discounts' ? 'is-active' : ''}`}
         >
           <Tag className="h-3.5 w-3.5" /> Diskon
         </button>
         <button
           type="button"
           onClick={() => setTab('vouchers')}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === 'vouchers' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === 'vouchers' ? 'is-active' : ''}`}
         >
           <Ticket className="h-3.5 w-3.5" /> Voucher
         </button>
@@ -101,15 +103,15 @@ export default function PromotionsPage() {
       {/* --- DISKON --- */}
       {tab === 'discounts' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <section className="surface p-4"><p className="text-xs text-slate-500">Total penjualan dari promo</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatIDR(totalSales)}</p></section>
-            <section className="surface p-4"><p className="text-xs text-slate-500">Total pesanan</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatNumber(totalOrders)}</p></section>
-            <section className="surface p-4"><p className="text-xs text-slate-500">Jumlah promo aktif</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatNumber(discounts.length)}</p></section>
+          <div className="promotions-summary-band">
+            <section className="surface p-4"><p className="text-xs text-slate-500">Total penjualan dari promo</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatIDR(discAvailable ? totalSales : null)}</p></section>
+            <section className="surface p-4"><p className="text-xs text-slate-500">Total pesanan</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatNumber(discAvailable ? totalOrders : null)}</p></section>
+            <section className="surface p-4"><p className="text-xs text-slate-500">Jumlah promo aktif</p><p className="mt-1 text-xl font-semibold text-slate-900">{formatNumber(discAvailable ? discounts.length : null)}</p></section>
           </div>
 
           {discMsg && <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{discMsg}</p>}
 
-          <section className="surface overflow-hidden">
+          <section className="promotions-ledger">
             <div className="table-scroll">
               <table className="w-full text-left text-xs">
                 <thead className="border-y border-slate-200 bg-slate-50 text-slate-500">
@@ -139,7 +141,7 @@ export default function PromotionsPage() {
                       <td className="px-5 py-3 text-right text-slate-700">{formatIDR(d.salesPerBuyer)}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="8" className="px-5 py-10 text-center"><EmptyState title="Belum ada data promo" message="Tidak ada promo diskon pada rentang ini." /></td></tr>
+                    <tr><td colSpan="8" className="px-5 py-10 text-center"><EmptyState title={discAvailable ? 'Belum ada data promo' : 'Data promo belum tersedia'} message={discMsg || 'Tidak ada promo diskon pada rentang ini.'} /></td></tr>
                   )}
                 </tbody>
               </table>
@@ -153,7 +155,7 @@ export default function PromotionsPage() {
         <div className="space-y-4">
           {vMsg && <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{vMsg}</p>}
 
-          <section className="surface overflow-hidden">
+          <section className="promotions-ledger">
             <div className="table-scroll">
               <table className="w-full text-left text-xs">
                 <thead className="border-y border-slate-200 bg-slate-50 text-slate-500">

@@ -31,7 +31,7 @@ export default function StoreOptimizationPage() {
   const reconciliationUnreliable = Boolean(data?.reconciliationTrust && !data.reconciliationTrust.reliable);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Optimasi toko"
         description="Rekomendasi operasional toko dari snapshot gudang dan rekonsiliasi stok."

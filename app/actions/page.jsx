@@ -74,7 +74,7 @@ export default function ActionCenterPage() {
   const tasksDone = tasks.filter((t) => t.status === 'COMPLETED').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title="Pusat Tindakan" description="Ubah rekomendasi terverifikasi menjadi tugas. Sistem tidak membuat perubahan otomatis ke Seller Center; keputusan dan progres dicatat di sini.">
         <div className="flex flex-wrap gap-3"><DataSourceNote meta={data?.sources?.catalog} /><DataSourceNote meta={data?.sources?.ads} /><DataSourceNote meta={data?.sources?.warehouse} /></div>
       </PageHeader>

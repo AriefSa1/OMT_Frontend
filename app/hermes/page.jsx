@@ -636,7 +636,7 @@ export default function HermesExperimentPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Eksperimen Hermes Agent"
         description="Ruang uji terpisah untuk Hermes Agent lokal. Percakapan ini tidak mengubah panel AI/Gemini dan tidak menyimpan riwayat ke database."

@@ -52,7 +52,7 @@ export default function StatusBadge({ status, compact = false }) {
   const label = status || 'Tidak Tersedia';
   const display = STATUS_DISPLAY[label] || label;
   return (
-    <span className={`inline-flex items-center whitespace-nowrap border px-2 py-1 text-[11px] font-semibold ${compact ? 'rounded-md' : 'rounded-full'} ${STATUS_STYLES[label] || STATUS_STYLES['Tidak Tersedia']}`}>
+    <span className={`inline-flex items-center whitespace-nowrap border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] ${compact ? 'rounded-[3px]' : 'rounded-md'} ${STATUS_STYLES[label] || STATUS_STYLES['Tidak Tersedia']}`}>
       {display}
     </span>
   );

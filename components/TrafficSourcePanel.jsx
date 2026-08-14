@@ -55,7 +55,7 @@ export default function TrafficSourcePanel({ traffic, loading = false }) {
             </div>
             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-rose-500"
+                className="h-full rounded-full bg-teal-600"
                 style={{ width: `${Math.round(((Number(channel.sales) || 0) / maxSales) * 100)}%` }}
               />
             </div>

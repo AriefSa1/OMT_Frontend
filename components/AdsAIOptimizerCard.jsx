@@ -1,208 +1,112 @@
 'use client';
 
-import { useState } from 'react';
-import { Target, Sparkles, RefreshCw, Copy, Check, TrendingDown, ArrowUpRight, ArrowDownRight, ShieldAlert, Zap, Layers } from 'lucide-react';
-import { optimizeAIAdsKeywords } from '../lib/api';
+import { useMemo, useState } from 'react';
+import { Calculator, CircleAlert, Target } from 'lucide-react';
 import { formatIDR, formatPercent } from '../lib/utils';
-import AIStatusNotice from './AIStatusNotice';
+
+function parseAmount(value) {
+  if (value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function hasMeasuredAmount(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+}
+
+function AmountField({ label, value, onChange, hint }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold text-slate-700">{label}</span>
+      <span className="relative mt-1 block">
+        <span className="pointer-events-none absolute left-3 top-2.5 text-xs font-semibold text-slate-400">Rp</span>
+        <input type="number" min="0" step="1000" inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Belum diisi" className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 focus:border-teal-500 focus:outline-none" />
+      </span>
+      {hint && <span className="mt-1 block text-[11px] leading-4 text-slate-500">{hint}</span>}
+    </label>
+  );
+}
 
 export default function AdsAIOptimizerCard({ adsData }) {
-  const [selectedCampaign, setSelectedCampaign] = useState(adsData?.topCampaigns?.[0]?.name || 'Semua Kampanye Iklan');
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
-  const [copiedKey, setCopiedKey] = useState('');
+  const campaigns = Array.isArray(adsData?.topCampaigns) ? adsData.topCampaigns : [];
+  const [selectedCampaign, setSelectedCampaign] = useState(campaigns[0]?.name || 'Semua kampanye');
+  const [hpp, setHpp] = useState('');
+  const [revenue, setRevenue] = useState('');
+  const [adminFee, setAdminFee] = useState('');
 
-  const currentCamp = adsData?.topCampaigns?.find((c) => c.name === selectedCampaign) || {
+  const effectiveSelectedCampaign = campaigns.some((item) => item.name === selectedCampaign)
+    ? selectedCampaign
+    : campaigns[0]?.name || selectedCampaign;
+  const campaign = campaigns.find((item) => item.name === effectiveSelectedCampaign) || {
     name: selectedCampaign,
-    spend: adsData?.totalSpend || 0,
-    sales: adsData?.totalSalesGenerated || 0,
-    roas: adsData?.roas || 0,
-    ctr: adsData?.ctr || 0,
+    spend: adsData?.totalSpend,
+    sales: adsData?.totalSalesGenerated,
+    roas: adsData?.roas,
   };
 
-  const handleOptimize = async () => {
-    setLoading(true);
-    try {
-      const res = await optimizeAIAdsKeywords({
-        campaignName: currentCamp.name,
-        spend: currentCamp.spend,
-        sales: currentCamp.sales,
-        roas: currentCamp.roas,
-        ctr: currentCamp.ctr,
-      });
-      setData(res || null);
-    } catch (err) {
-      console.warn('Failed to optimize ads:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const calculation = useMemo(() => {
+    const measuredSpend = Number(campaign?.spend);
+    const hppValue = parseAmount(hpp);
+    const revenueValue = parseAmount(revenue);
+    const adminFeeValue = parseAmount(adminFee);
+    if (hppValue === null || revenueValue === null || adminFeeValue === null || !hasMeasuredAmount(campaign?.spend)) return null;
+    const contributionBeforeAds = revenueValue - hppValue - adminFeeValue;
+    const profitAfterAds = contributionBeforeAds - measuredSpend;
+    return {
+      contributionBeforeAds,
+      profitAfterAds,
+      marginPercent: revenueValue > 0 ? (profitAfterAds / revenueValue) * 100 : null,
+      breakEvenRoas: contributionBeforeAds > 0 ? revenueValue / contributionBeforeAds : null,
+      profitable: profitAfterAds >= 0,
+    };
+  }, [campaign, hpp, revenue, adminFee]);
 
-  const copyNegativeKeywords = () => {
-    if (!data?.negativeKeywordsToExclude) return;
-    navigator.clipboard.writeText(data.negativeKeywordsToExclude.join(', '));
-    setCopiedKey('neg');
-    setTimeout(() => setCopiedKey(''), 2000);
-  };
+  const measuredSpendAvailable = hasMeasuredAmount(campaign?.spend);
 
   return (
     <section className="surface overflow-hidden border border-slate-200 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-600 text-white">
-            <Target className="h-4 w-4" />
-          </div>
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-600 text-white"><Calculator className="h-4 w-4" /></span>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">AI Ads Negative Keyword & Bid Optimizer</h2>
-            <p className="text-xs text-slate-500">Deteksi pemborosan iklan, rekomendasi kata kunci negatif, & penyesuaian bid</p>
+            <h2 className="text-sm font-semibold text-slate-900">Kalkulator Profit Iklan</h2>
+            <p className="text-xs text-slate-500">Uji apakah penjualan masih untung setelah HPP, biaya admin, dan biaya iklan terukur.</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {adsData?.topCampaigns?.length > 0 && (
-            <select
-              value={selectedCampaign}
-              onChange={(e) => {
-                setSelectedCampaign(e.target.value);
-                setData(null);
-              }}
-              className="ui-select h-8 max-w-48 truncate rounded-md px-2 text-xs font-medium text-slate-700"
-            >
-              {adsData.topCampaigns.map((c, i) => (
-                <option key={i} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <button
-            type="button"
-            onClick={handleOptimize}
-            disabled={loading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60 transition"
-          >
-            {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span>{loading ? 'Menganalisis...' : data ? 'Analisis Ulang' : 'Optimasi Iklan'}</span>
-          </button>
-        </div>
+        {campaigns.length > 0 && (
+          <select value={effectiveSelectedCampaign} onChange={(event) => { const next = event.target.value; setSelectedCampaign(next); const selected = campaigns.find((item) => item.name === next); setRevenue(Number.isFinite(Number(selected?.sales)) ? String(selected.sales) : ''); }} aria-label="Pilih kampanye untuk kalkulator profit" className="ui-select h-9 max-w-64 truncate rounded-md px-2 text-xs font-medium text-slate-700">
+            {campaigns.map((item) => <option key={item.id || item.name} value={item.name}>{item.name}</option>)}
+          </select>
+        )}
       </div>
 
-      <div className="p-5">
-        {!data ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-8 text-center bg-slate-50/40">
-            <Target className="h-8 w-8 text-slate-400" />
-            <p className="mt-2 text-xs font-semibold text-slate-700">Analisis kata kunci belum dijalankan</p>
-            <p className="mt-1 text-[11px] text-slate-500 max-w-md">
-              Pilih kampanye dan klik &quot;Optimasi Iklan&quot; untuk menemukan kata kunci boncos dan strategi bid optimal di Shopee Ads.
-            </p>
+      <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.85fr)]">
+        <div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <AmountField label="HPP total" value={hpp} onChange={setHpp} hint="Total harga pokok untuk omzet pada periode yang sama." />
+            <AmountField label="Omzet" value={revenue} onChange={setRevenue} hint="Isi omzet produk/kampanye pada periode laporan." />
+            <AmountField label="Biaya admin marketplace" value={adminFee} onChange={setAdminFee} hint="Gunakan nilai nominal, bukan persentase." />
           </div>
-        ) : !data.success ? (
-          <AIStatusNotice result={data} />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Biaya iklan terukur</p><p className="mt-1 text-base font-semibold text-slate-900">{measuredSpendAvailable ? formatIDR(Number(campaign.spend)) : 'Belum tersedia'}</p><p className="mt-1 text-[11px] text-slate-500">Sumber: snapshot kampanye, bukan input AI.</p></div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ROAS kampanye</p><p className="mt-1 text-base font-semibold text-slate-900">{hasMeasuredAmount(campaign?.roas) ? `${Number(campaign.roas).toFixed(2)}x` : 'Belum tersedia'}</p><p className="mt-1 text-[11px] text-slate-500">ROAS saja belum membuktikan profit tanpa HPP dan biaya admin.</p></div>
+          </div>
+        </div>
+
+        {!measuredSpendAvailable ? (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" /><p>Biaya iklan kampanye belum terukur. Kalkulasi profit tidak dibuat agar sistem tidak mengganti data yang hilang dengan nol.</p></div>
+        ) : !calculation ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/40 p-6 text-center"><Target className="h-7 w-7 text-slate-400" /><p className="mt-2 text-xs font-semibold text-slate-700">Lengkapi tiga nilai biaya</p><p className="mt-1 text-[11px] leading-5 text-slate-500">Hasil dihitung langsung di browser dan tidak memakai kuota AI.</p></div>
         ) : (
-          <div className="space-y-5">
-            {/* Overview Banner */}
-            <div className="rounded-lg bg-slate-50 p-3.5 border border-slate-200 text-xs">
-              <p className="font-semibold text-slate-800">{data.summary}</p>
-              {data.wastedSpendEstimate > 0 && (
-                <div className="mt-2 flex items-center gap-2 text-rose-700 font-bold">
-                  <TrendingDown className="h-4 w-4" />
-                  <span>Estimasi Biaya Boncos / Terbuang: {formatIDR(data.wastedSpendEstimate)}</span>
-                </div>
-              )}
+          <div className={`rounded-lg border p-4 ${calculation.profitable ? 'border-emerald-200 bg-emerald-50/60' : 'border-rose-200 bg-rose-50/60'}`}>
+            <p className={`text-xs font-bold uppercase tracking-wide ${calculation.profitable ? 'text-emerald-700' : 'text-rose-700'}`}>{calculation.profitable ? 'Masih menghasilkan laba' : 'Merugi setelah biaya iklan'}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{formatIDR(calculation.profitAfterAds)}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              <div><p className="text-slate-500">Margin bersih</p><p className="mt-0.5 font-semibold text-slate-800">{calculation.marginPercent === null ? 'Tidak dapat dihitung' : formatPercent(calculation.marginPercent)}</p></div>
+              <div><p className="text-slate-500">Margin sebelum iklan</p><p className="mt-0.5 font-semibold text-slate-800">{formatIDR(calculation.contributionBeforeAds)}</p></div>
+              <div><p className="text-slate-500">Batas biaya iklan</p><p className="mt-0.5 font-semibold text-slate-800">{calculation.contributionBeforeAds >= 0 ? formatIDR(calculation.contributionBeforeAds) : 'Tidak ada'}</p></div>
+              <div><p className="text-slate-500">ROAS impas</p><p className="mt-0.5 font-semibold text-slate-800">{calculation.breakEvenRoas === null ? 'Tidak dapat dicapai' : `${calculation.breakEvenRoas.toFixed(2)}x`}</p></div>
             </div>
-
-            {/* Negative Keywords Exclude */}
-            {data.negativeKeywordsToExclude && data.negativeKeywordsToExclude.length > 0 && (
-              <div className="rounded-lg border border-rose-100 bg-rose-50/40 p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-4 w-4 text-rose-600" />
-                    <span className="text-xs font-bold text-rose-900">Kata Kunci Negatif yang Disarankan untuk Diblokir:</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={copyNegativeKeywords}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-800"
-                  >
-                    {copiedKey === 'neg' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                    <span>{copiedKey === 'neg' ? 'Tersalin!' : 'Salin Semua Kata Kunci'}</span>
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {data.negativeKeywordsToExclude.map((kw, i) => (
-                    <span key={i} className="rounded-md bg-white border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-800 shadow-sm">
-                      - {kw}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-[11px] text-slate-500 pt-1">
-                  Tambahkan kata kunci di atas ke pengaturan Kata Kunci Negatif di Shopee Seller Center untuk menghentikan klik yang tidak menghasilkan pesanan.
-                </p>
-              </div>
-            )}
-
-            {/* Bid Adjustment Rules */}
-            {data.bidAdjustments && data.bidAdjustments.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-900">Rekomendasi Penyesuaian Nilai Bid:</span>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {data.bidAdjustments.map((adj, idx) => (
-                    <div key={idx} className="rounded-lg bg-white p-3 border border-slate-200 shadow-sm text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-800">{adj.keywordType}</span>
-                        <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                          adj.action === 'NAIKKAN_BID'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {adj.action === 'NAIKKAN_BID' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                          {adj.recommendedAdjustment}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500">{adj.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Scale Keywords Recommended */}
-            {data.scaleKeywordsRecommended && data.scaleKeywordsRecommended.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-900">Kata Kunci Potensial untuk Scaling:</span>
-                <div className="table-scroll">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Kata Kunci</th>
-                        <th className="px-3 py-2 font-medium">Tipe Pencocokan</th>
-                        <th className="px-3 py-2 font-medium">Saran Bid (Rp)</th>
-                        <th className="px-3 py-2 font-medium">Volume Pencarian</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {data.scaleKeywordsRecommended.map((item, i) => (
-                        <tr key={i} className="hover:bg-slate-50">
-                          <td className="px-3 py-2 font-semibold text-slate-800">{item.keyword}</td>
-                          <td className="px-3 py-2 text-slate-600">{item.matchType}</td>
-                          <td className="px-3 py-2 font-medium text-emerald-600">{formatIDR(item.suggestedBid)}</td>
-                          <td className="px-3 py-2 text-slate-500">{item.estimatedSearchVolume}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Daily budget strategy */}
-            {data.dailyBudgetStrategy && (
-              <div className="rounded-lg bg-blue-50/50 p-3 border border-blue-100 text-xs text-blue-900">
-                <span className="font-bold">Strategi Anggaran Harian: </span>
-                <span>{data.dailyBudgetStrategy}</span>
-              </div>
-            )}
           </div>
         )}
       </div>

@@ -90,7 +90,7 @@ export default function WarehousePerformancePage() {
   const accuracyRate = items.length > 0 ? (matchedCount / items.length) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Rekonsiliasi Stok"
         description="Akurasi stok Shopee vs Gudang, deteksi selisih SKU, dan performa tim gudang."

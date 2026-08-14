@@ -70,7 +70,7 @@ export default function ProductDetailPage({ params }) {
   const product = snapshot?.product;
   if (!loading && !product) return <EmptyState title="Produk tidak ditemukan" message="Produk tidak ada pada snapshot katalog saat ini." action={<Link href="/shopee" className="text-xs font-semibold text-rose-700">Kembali ke katalog</Link>} />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title={product?.name || 'Detail produk'} description="Data katalog dan performa dari snapshot Shopee. Perubahan ke Seller Center tetap dilakukan secara manual." actions={<Link href="/shopee" className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowLeft className="h-4 w-4" />Katalog</Link>}>
         <DataSourceNote meta={snapshot?.meta} />
       </PageHeader>
@@ -102,7 +102,7 @@ export default function ProductDetailPage({ params }) {
         </section>
 
         {/* AI Features Suite */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <ProductScaleUpAdvisor product={product} />
           <ProductABCopywriter product={product} />
           <ProductPricingSimulator product={product} initialEconomics={product.economics} competitorPrice={competitors?.products?.[0]?.price} />

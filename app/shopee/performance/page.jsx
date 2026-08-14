@@ -45,7 +45,7 @@ const ORDER_BY_OPTIONS = [
 
 const PerformanceRow = memo(function PerformanceRow({ product }) {
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
+    <tr className="performance-row">
       <td className="px-4 py-3.5 text-center font-bold">
         <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
           product.rank === 1
@@ -69,7 +69,7 @@ const PerformanceRow = memo(function PerformanceRow({ product }) {
             )}
           </span>
           <div className="min-w-0">
-            <Link href={`/product/${product.itemId}`} className="block max-w-72 truncate font-semibold text-slate-900 hover:text-rose-600 transition-colors">
+            <Link href={`/shopee/performance/${product.itemId}`} className="block max-w-72 truncate font-semibold text-slate-900 hover:text-teal-700 transition-colors">
               {product.name}
             </Link>
             <span className="block max-w-72 truncate text-[11px] text-slate-500 font-mono">SKU: {product.sku || product.itemId}</span>
@@ -87,7 +87,7 @@ const PerformanceRow = memo(function PerformanceRow({ product }) {
         <div className="font-semibold text-slate-900">{formatNumber(product.confirmedOrders)} pesanan</div>
         <div className="text-[10px] text-slate-500">{formatNumber(product.confirmedUnits)} unit</div>
       </td>
-      <td className="px-4 py-3.5 text-right font-bold text-rose-700">{formatIDR(product.confirmedSales)}</td>
+      <td className="px-4 py-3.5 text-right font-bold text-teal-800">{formatIDR(product.confirmedSales)}</td>
       <td className="px-4 py-3.5 text-right font-semibold">
         <span className={`inline-block px-2 py-0.5 rounded text-[11px] ${
           product.conversionRate >= 5
@@ -234,10 +234,10 @@ export default function ShopeeProductPerformancePage() {
       : 'Data Sesi Aktif';
 
   return (
-    <div className="space-y-6">
+    <div className="performance-workspace">
       <PageHeader
-        title="Performa Produk (Bisnis Saya)"
-        description="Analisis mendalam performa penjualan, pengunjung, dan rasio konversi produk Shopee berdasarkan periode."
+        title="Performa Produk"
+        description="Bandingkan jangkauan, minat, pesanan, dan GMV produk dalam satu ledger performa."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <DateRangePicker />
@@ -255,7 +255,7 @@ export default function ShopeeProductPerformancePage() {
               type="button"
               onClick={handleSync}
               disabled={syncing}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-70 transition-colors shadow-sm"
+                className="performance-sync-button inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold text-white disabled:opacity-70 transition-colors shadow-sm"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Menyinkronkan...' : 'Sync Data'}
@@ -263,7 +263,7 @@ export default function ShopeeProductPerformancePage() {
           </div>
         }
       >
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="performance-source-line">
           <StatusBadge
             status={isConnected ? 'Segar' : 'Perlu Koneksi'}
           />
@@ -286,11 +286,11 @@ export default function ShopeeProductPerformancePage() {
       </PageHeader>
 
       {/* KPI Overview Summary */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="surface p-4 border-l-4 border-l-rose-500 relative overflow-hidden">
+      <section className="performance-summary-band" aria-label="Ringkasan performa produk">
+        <div className="performance-summary-item">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Total Penjualan (GMV)</span>
-            <div className="rounded-md bg-rose-50 p-2 text-rose-600"><Wallet className="h-4 w-4" /></div>
+            <span>GMV terkonfirmasi</span>
+            <Wallet />
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
             {loading ? <div className="skeleton h-7 w-32 rounded" /> : formatIDR(summary?.totalSales)}
@@ -298,10 +298,10 @@ export default function ShopeeProductPerformancePage() {
           <p className="mt-1 text-[11px] text-slate-500">Omset terkonfirmasi periode ini</p>
         </div>
 
-        <div className="surface p-4 border-l-4 border-l-blue-500 relative overflow-hidden">
+        <div className="performance-summary-item">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Pesanan Terkonfirmasi</span>
-            <div className="rounded-md bg-blue-50 p-2 text-blue-600"><Package className="h-4 w-4" /></div>
+            <span>Pesanan terkonfirmasi</span>
+            <Package />
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
             {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary?.totalOrders)} pesanan`}
@@ -311,13 +311,13 @@ export default function ShopeeProductPerformancePage() {
           </p>
         </div>
 
-        <div className="surface p-4 border-l-4 border-l-indigo-500 relative overflow-hidden">
+        <div className="performance-summary-item">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1">
               Pengunjung Produk
               <InfoTooltip label="Pengunjung Produk">Pengunjung unik (UV) yang membuka halaman produk. "Kali dilihat" adalah total kunjungan (satu orang bisa melihat beberapa kali).</InfoTooltip>
             </span>
-            <div className="rounded-md bg-indigo-50 p-2 text-indigo-600"><Users className="h-4 w-4" /></div>
+            <Users />
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
             {loading ? <div className="skeleton h-7 w-20 rounded" /> : `${formatNumber(summary?.totalVisitors)} UV`}
@@ -327,13 +327,13 @@ export default function ShopeeProductPerformancePage() {
           </p>
         </div>
 
-        <div className="surface p-4 border-l-4 border-l-emerald-500 relative overflow-hidden">
+        <div className="performance-summary-item">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1">
               Rata-rata Rasio Konversi
               <InfoTooltip label="Rasio Konversi">Persentase pengunjung yang jadi membeli = pesanan ÷ pengunjung (UV). Makin tinggi berarti halaman produk makin efektif mengubah trafik jadi penjualan.</InfoTooltip>
             </span>
-            <div className="rounded-md bg-emerald-50 p-2 text-emerald-600"><TrendingUp className="h-4 w-4" /></div>
+            <TrendingUp />
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900">
             {loading ? <div className="skeleton h-7 w-16 rounded" /> : formatPercent(summary?.averageConversionRate)}
@@ -344,8 +344,8 @@ export default function ShopeeProductPerformancePage() {
 
       {/* Toolbar gabungan: periode + pencarian + filter jadi satu baris yang LENGKET
           di bawah header saat menggulir tabel panjang (top-16 = tinggi navbar). */}
-      <section className="surface sticky top-16 z-10 p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <section className="performance-controls sticky top-16 z-10">
+        <div className="performance-control-row">
           <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
             {PERIOD_OPTIONS.map((item) => {
               const active = !useCustomRange && period === item.id;
@@ -357,7 +357,7 @@ export default function ShopeeProductPerformancePage() {
                   onClick={() => { setUseCustomRange(false); setPeriod(item.id); setPage(1); }}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                     active
-                      ? 'bg-rose-600 text-white shadow-sm'
+                      ? 'bg-teal-600 text-white shadow-sm'
                       : 'text-slate-600 hover:bg-white hover:text-slate-900'
                   }`}
                 >
@@ -423,15 +423,15 @@ export default function ShopeeProductPerformancePage() {
       </section>
 
       {/* Table Section */}
-      <section className="surface overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+      <section className="performance-ledger">
+        <div className="performance-ledger-header">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Peringkat & Rincian Performa Produk</h2>
             <p className="mt-0.5 text-xs text-slate-500">
               Menampilkan {data?.products?.length || 0} dari total {data?.total || 0} produk
             </p>
           </div>
-          <span className="text-xs font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md">
+          <span className="performance-period-badge">
             Periode: {PERIOD_OPTIONS.find((p) => p.id === period)?.label}
           </span>
         </div>

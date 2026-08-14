@@ -22,7 +22,7 @@ function AdsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload || {};
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-3 text-xs shadow-sm">
+    <div className="chart-tooltip rounded-md border border-teal-200 bg-white p-3 text-xs shadow-lg">
       <p className="mb-1.5 font-semibold text-slate-800">{label}</p>
       <div className="space-y-1 text-slate-600">
         <p>Penjualan: <span className="font-semibold text-slate-900">{formatIDR(row.sales)}</span></p>
@@ -38,7 +38,7 @@ export default function AdsTrendChart({ data = [], title = 'Tren biaya & penjual
   const points = view.length;
 
   return (
-    <section className="surface flex h-full flex-col p-5">
+    <section className="surface chart-panel flex h-full flex-col p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
@@ -48,9 +48,9 @@ export default function AdsTrendChart({ data = [], title = 'Tren biaya & penjual
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />Penjualan</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden="true" />Biaya</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />ROAS</span>
+          <span className="flex items-center gap-1.5"><span className="chart-legend-dot bg-teal-700" aria-hidden="true" />Penjualan</span>
+          <span className="flex items-center gap-1.5"><span className="chart-legend-dot bg-amber-500" aria-hidden="true" />Biaya</span>
+          <span className="flex items-center gap-1.5"><span className="chart-legend-dot bg-teal-400" aria-hidden="true" />ROAS</span>
         </div>
       </div>
 
@@ -62,24 +62,14 @@ export default function AdsTrendChart({ data = [], title = 'Tren biaya & penjual
         <div className="h-64 w-full flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={view} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="adsSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#d92d70" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#d92d70" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="adsSpend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#344054" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#344054" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e7ec" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={26} tick={{ fill: '#667085', fontSize: 11 }} />
-              <YAxis yAxisId="rupiah" axisLine={false} tickLine={false} width={54} tick={{ fill: '#667085', fontSize: 11 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
-              <YAxis yAxisId="roas" orientation="right" axisLine={false} tickLine={false} width={30} allowDecimals tick={{ fill: '#059669', fontSize: 11 }} />
+              <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="#d7e3e0" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={26} tick={{ fill: '#6b7c80', fontSize: 10 }} />
+              <YAxis yAxisId="rupiah" axisLine={false} tickLine={false} width={54} tick={{ fill: '#6b7c80', fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+              <YAxis yAxisId="roas" orientation="right" axisLine={false} tickLine={false} width={30} allowDecimals tick={{ fill: '#0f9d8a', fontSize: 10 }} />
               <Tooltip content={<AdsTooltip />} />
-              <Area yAxisId="rupiah" type="monotone" dataKey="sales" name="Penjualan" stroke="#d92d70" strokeWidth={2} fillOpacity={1} fill="url(#adsSales)" dot={points <= 3 ? { r: 3, fill: '#d92d70' } : false} />
-              <Area yAxisId="rupiah" type="monotone" dataKey="spend" name="Biaya" stroke="#344054" strokeWidth={2} fillOpacity={1} fill="url(#adsSpend)" dot={points <= 3 ? { r: 3, fill: '#344054' } : false} />
-              <Line yAxisId="roas" type="monotone" dataKey="roas" name="ROAS" stroke="#059669" strokeWidth={2} dot={points <= 3 ? { r: 3, fill: '#059669' } : false} />
+              <Line yAxisId="rupiah" type="monotone" dataKey="sales" name="Penjualan" stroke="#08776d" strokeWidth={2.5} dot={points <= 3 ? { r: 3, fill: '#08776d' } : false} />
+              <Line yAxisId="rupiah" type="monotone" dataKey="spend" name="Biaya" stroke="#c28728" strokeWidth={2} strokeDasharray="5 4" dot={points <= 3 ? { r: 3, fill: '#c28728' } : false} />
+              <Line yAxisId="roas" type="monotone" dataKey="roas" name="ROAS" stroke="#0f9d8a" strokeWidth={2.5} dot={points <= 3 ? { r: 3, fill: '#0f9d8a' } : false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

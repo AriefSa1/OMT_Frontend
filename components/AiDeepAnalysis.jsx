@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Ban, Lightbulb, RefreshCw, Settings, ShieldAlert, Sparkles, Target } from 'lucide-react';
 import { fetchActionAnalysis } from '../lib/api';
@@ -36,7 +36,7 @@ const ALL_SECTIONS = ['summary', 'priorityActions', 'deepDives', 'growth', 'avoi
  */
 export default function AiDeepAnalysis({ show = ALL_SECTIONS, title = 'Analisa Mendalam AI', subtitle = 'Diagnosa berbasis data toko oleh AI — bukan saran umum.' }) {
   const has = (s) => show.includes(s);
-  const [state, setState] = useState({ loading: true, data: null, error: null, provider: null });
+  const [state, setState] = useState({ loading: false, data: null, error: null, provider: null });
 
   const load = useCallback(async (force) => {
     setState((s) => ({ ...s, loading: true, error: null }));
@@ -47,8 +47,6 @@ export default function AiDeepAnalysis({ show = ALL_SECTIONS, title = 'Analisa M
       setState({ loading: false, data: null, error: res?.message || res?.error || 'Gagal memuat analisa.', provider: res?.provider });
     }
   }, []);
-
-  useEffect(() => { load(false); }, [load]);
 
   const a = state.data || {};
 
@@ -76,12 +74,12 @@ export default function AiDeepAnalysis({ show = ALL_SECTIONS, title = 'Analisa M
           )}
           <button
             type="button"
-            onClick={() => load(true)}
+            onClick={() => load(Boolean(state.data || state.error))}
             disabled={state.loading}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${state.loading ? 'animate-spin' : ''}`} />
-            <span>{state.loading ? 'Menganalisa…' : 'Analisa ulang'}</span>
+            <span>{state.loading ? 'Menganalisa…' : state.data || state.error ? 'Analisa ulang' : 'Buat Analisa'}</span>
           </button>
         </div>
       </div>
@@ -96,8 +94,16 @@ export default function AiDeepAnalysis({ show = ALL_SECTIONS, title = 'Analisa M
         </div>
       )}
 
+      {/* Manual initial state: opening a page must not spend limited AI quota. */}
+      {!state.loading && !state.data && !state.error && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+          <div className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-fuchsia-500" /> Analisa dijalankan saat diminta</div>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Tekan Buat Analisa untuk membaca snapshot toko terbaru. Hasilnya disimpan sementara agar berpindah halaman tidak mengulang pemakaian kuota AI.</p>
+        </div>
+      )}
+
       {/* Error / not configured */}
-      {!state.loading && !state.data && (
+      {!state.loading && !state.data && state.error && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4" /> Analisa belum tersedia</div>
           <p className="mt-1 text-xs">{state.error}</p>

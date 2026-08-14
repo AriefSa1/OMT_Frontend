@@ -6,7 +6,7 @@ import MarketplacePerformancePanel from '../../../components/MarketplacePerforma
 
 export default function MarketplacePerformancePage() {
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto pb-12">
+    <div className="space-y-4 animate-fade-in pb-6">
       <PageHeader
         title="Performa Marketplace"
         description="Analisis penjualan, profitabilitas, dan retur berdasarkan data gudang."

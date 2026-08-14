@@ -31,6 +31,7 @@ export default function MarketplacePerformancePanel() {
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [available, setAvailable] = useState(false);
   const [channel, setChannel] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -41,9 +42,11 @@ export default function MarketplacePerformancePanel() {
       const res = await fetchMarketplacePerformance({ startDate, endDate });
       setRows(res?.rows || []);
       setTeam(res?.team || null);
+      setAvailable(Boolean(res?.success));
       if (!res?.success && res?.message) setMessage(res.message);
     } catch (err) {
       setRows([]);
+      setAvailable(false);
       setMessage(`Gagal memuat performa marketplace: ${err?.message || 'kesalahan tak terduga'}`);
     } finally {
       setLoading(false);
@@ -67,14 +70,19 @@ export default function MarketplacePerformancePanel() {
       })
     : byChannel;
 
-  const totals = filtered.reduce((acc, r) => ({
-    orderAmount: acc.orderAmount + (r.orderAmount || 0),
-    orderCount: acc.orderCount + (r.orderCount || 0),
-    adsTotal: acc.adsTotal + (r.adsTotal || 0),
-    profitLoss: acc.profitLoss + (r.profitLoss || 0),
-  }), { orderAmount: 0, orderCount: 0, adsTotal: 0, profitLoss: 0 });
+  const sumMeasured = (field) => {
+    if (!filtered.length || filtered.some((row) => row[field] === null || row[field] === undefined || !Number.isFinite(Number(row[field])))) return null;
+    return filtered.reduce((sum, row) => sum + Number(row[field]), 0);
+  };
+  const totals = {
+    orderAmount: sumMeasured('orderAmount'),
+    orderCount: sumMeasured('orderCount'),
+    adsTotal: sumMeasured('adsTotal'),
+    profitLoss: sumMeasured('profitLoss'),
+  };
 
-  const profitPositive = totals.profitLoss >= 0;
+  const profitMeasured = totals.profitLoss !== null;
+  const profitPositive = profitMeasured && totals.profitLoss >= 0;
 
   return (
     <section className="space-y-4">
@@ -99,7 +107,7 @@ export default function MarketplacePerformancePanel() {
             onClick={() => setChannel(c.key)}
             className={`rounded-md px-3 py-1 text-xs font-semibold transition ${channel === c.key ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
-            {c.label} <span className="text-slate-400">({countByChannel[c.key] || 0})</span>
+            {c.label} <span className="text-slate-400">({available ? countByChannel[c.key] : '—'})</span>
           </button>
         ))}
       </div>
@@ -111,8 +119,8 @@ export default function MarketplacePerformancePanel() {
         <section className="surface p-4"><p className="text-xs text-slate-500">Biaya iklan</p><p className="mt-1 text-lg font-semibold text-slate-900">{formatIDR(totals.adsTotal)}</p></section>
         <section className="surface p-4">
           <p className="text-xs text-slate-500">Laba / rugi</p>
-          <p className={`mt-1 inline-flex items-center gap-1 text-lg font-semibold ${profitPositive ? 'text-emerald-700' : 'text-rose-700'}`}>
-            {profitPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          <p className={`mt-1 inline-flex items-center gap-1 text-lg font-semibold ${!profitMeasured ? 'text-slate-700' : profitPositive ? 'text-emerald-700' : 'text-rose-700'}`}>
+            {profitMeasured && (profitPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
             {formatIDR(totals.profitLoss)}
           </p>
         </section>
@@ -179,7 +187,8 @@ export default function MarketplacePerformancePanel() {
                 ))
               ) : filtered.length ? (
                 filtered.map((r) => {
-                  const pos = (r.profitLoss || 0) >= 0;
+                  const profitAvailable = r.profitLoss !== null && r.profitLoss !== undefined && Number.isFinite(Number(r.profitLoss));
+                  const pos = profitAvailable && Number(r.profitLoss) >= 0;
                   return (
                     <tr key={`${r.type}-${r.id}`} className="group transition-colors hover:bg-slate-50/80">
                       <td className="px-6 py-4">
@@ -203,18 +212,18 @@ export default function MarketplacePerformancePanel() {
                       <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatIDR(r.adsTotal)}</td>
                       <td className="px-4 py-4 text-right tabular-nums text-slate-600">{formatIDR(r.estimatedProfit)}</td>
                       <td className="px-4 py-4 text-right tabular-nums">
-                        <span className={`font-medium ${pos ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {r.profitLoss > 0 ? '+' : ''}{formatIDR(r.profitLoss)}
+                        <span className={`font-medium ${!profitAvailable ? 'text-slate-500' : pos ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {profitAvailable && r.profitLoss > 0 ? '+' : ''}{formatIDR(r.profitLoss)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right tabular-nums text-rose-500">{r.returnAmount > 0 ? formatIDR(r.returnAmount) : '-'}</td>
+                      <td className="px-6 py-4 text-right tabular-nums text-rose-500">{formatIDR(r.returnAmount)}</td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
                   <td colSpan="10" className="px-6 py-12 text-center">
-                    <EmptyState title="Belum ada data" message="Tidak ada performa marketplace pada rentang ini." />
+                    <EmptyState title={available ? 'Tidak ada data pada rentang ini' : 'Data belum tersedia'} message={message || 'Tidak ada performa marketplace pada rentang ini.'} />
                   </td>
                 </tr>
               )}

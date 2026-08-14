@@ -4,238 +4,221 @@ import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Boxes, Eye, MousePointerClick, Package, ShoppingBag, Target, TriangleAlert, RefreshCw } from 'lucide-react';
-import MetricCard from '../components/MetricCard';
-import StatTile from '../components/ui/StatTile';
-import Collapsible from '../components/ui/Collapsible';
+import { ArrowRight, Database, Package } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
-import StatusBadge, { DataSourceNote, formatDataTime } from '../components/StatusBadge';
+import StatusBadge, { formatDataTime } from '../components/StatusBadge';
 import DailyBriefingCard from '../components/DailyBriefingCard';
-import TrafficSourcePanel from '../components/TrafficSourcePanel';
-import DateRangePicker from '../components/DateRangePicker';
 import ProductOverviewPanel from '../components/ProductOverviewPanel';
 import StoreCrossCheckPanel from '../components/StoreCrossCheckPanel';
 import OnboardingGuide from '../components/OnboardingGuide';
-import { fetchDashboardOverview, fetchSyncLogs, fetchTrafficSources, triggerSyncAndPoll } from '../lib/api';
+import Sparkline from '../components/Sparkline';
+import { fetchDashboardOverview, fetchSyncLogs, triggerSyncAndPoll } from '../lib/api';
 import { formatIDR, formatNumber, formatPercent } from '../lib/utils';
 import { useSnapshotRefresh } from '../lib/hooks';
 import { useStore } from '../context/StoreContext';
-import { useDateRange } from '../context/DateRangeContext';
 
-const SalesChart = dynamic(() => import('../components/SalesChart'), {
-  ssr: false,
-  loading: () => <div className="skeleton h-96 rounded-md" />,
-});
-
-const CategoryPieChart = dynamic(() => import('../components/CategoryPieChart'), {
-  ssr: false,
-  loading: () => <div className="skeleton h-96 rounded-md" />,
-});
+const SalesChart = dynamic(() => import('../components/SalesChart'), { ssr: false, loading: () => <div className="skeleton h-96 rounded-md" /> });
 
 function MetricLoading() {
-  return <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div className="skeleton h-32 rounded-md" key={index} />)}</div>;
+  return <div className="space-y-3"><div className="skeleton h-32 rounded-md" /> <div className="skeleton h-24 rounded-md" /></div>;
+}
+
+function OverviewBand({ data, trend, historyAvailable }) {
+  const gmvSpark = (data?.salesTrend || []).map((row) => Number(row?.gmv)).filter(Number.isFinite);
+  const ordersSpark = (data?.salesTrend || []).map((row) => Number(row?.orders)).filter(Number.isFinite);
+  const items = [
+    {
+      label: 'GMV toko',
+      value: formatIDR(data?.kpis?.totalGmv),
+      trend: trend?.gmv,
+      note: historyAvailable ? `Pesanan terkonfirmasi pada ${data?.kpiTrend?.currentDate || 'periode ini'}` : data?.history?.message,
+      spark: gmvSpark,
+      sparkColor: '#0088b0',
+    },
+    {
+      label: 'Pesanan toko',
+      value: formatNumber(data?.kpis?.totalOrders),
+      trend: trend?.orders,
+      note: historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi',
+      spark: ordersSpark,
+      sparkColor: '#0088b0',
+    },
+    {
+      label: 'Selisih stok',
+      value: formatNumber(data?.kpis?.discrepanciesAlerts),
+      trend: null,
+      note: data?.reconciliationTrust && !data.reconciliationTrust.reliable
+        ? data.reconciliationTrust.message
+        : `${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`,
+      spark: [],
+      sparkColor: '#d6006c',
+      alert: data?.kpis?.discrepanciesAlerts !== null && data?.kpis?.discrepanciesAlerts !== undefined && Number(data.kpis.discrepanciesAlerts) > 0,
+    },
+  ];
+
+  return (
+    <section className="home-overview-band" aria-label="Ringkasan operasional">
+      {items.map(({ label, value, note, trend: itemTrend, spark, sparkColor, alert }) => (
+        <article key={label} className="home-overview-item">
+          <div className="home-overview-label">{label}</div>
+          <p className="home-overview-value" title={String(value)}>{value}</p>
+          <div className="home-overview-foot">
+            {itemTrend?.direction && <span className={itemTrend.direction === 'down' ? 'home-trend home-trend-down' : 'home-trend'}>{Number(itemTrend.changePercent) > 0 ? '+' : ''}{Number(itemTrend.changePercent).toFixed(1)}%</span>}
+            <span>{note}</span>
+          </div>
+          {spark.length >= 2 && <Sparkline values={spark} color={sparkColor} width={220} height={34} />}
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function AdsPerformanceRail({ data, trend }) {
+  const items = [
+    { label: 'Iklan dilihat', value: formatNumber(data?.kpis?.adsImpressions), trend: trend?.adsImpressions },
+    { label: 'Jumlah klik', value: formatNumber(data?.kpis?.adsClicks), trend: trend?.adsClicks },
+    { label: 'Persentase klik', value: data?.kpis?.adsCtr !== null ? formatPercent(data?.kpis?.adsCtr) : '-', trend: trend?.adsCtr },
+    { label: 'Pesanan', value: formatNumber(data?.kpis?.adsOrders), trend: trend?.adsOrders },
+    { label: 'Produk terjual', value: formatNumber(data?.kpis?.adsItemSold), trend: trend?.adsItemSold },
+    { label: 'Penjualan iklan', value: formatIDR(data?.kpis?.adsSales), trend: trend?.adsSales, emphasis: true },
+    { label: 'Biaya iklan', value: formatIDR(data?.kpis?.adsSpend), trend: trend?.adsSpend, invert: true, emphasis: true },
+    { label: 'ROAS', value: data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? 'Belum tersedia' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`, trend: trend?.adsRoas, accent: true, emphasis: true },
+  ];
+
+  return (
+    <section className="home-ads-rail" aria-labelledby="ads-performance-title">
+      <div className="home-rail-heading">
+        <div><p className="home-section-kicker">Ringkasan cepat</p><h2 id="ads-performance-title">Performa iklan</h2></div>
+        {trend?.previousDate && <p>vs. {trend.previousDate}{trend.currentIsPartial ? ' · hari ini belum lengkap' : ''}</p>}
+      </div>
+      <div className="home-ads-grid">
+        {items.map((item) => {
+          const direction = item.trend?.direction;
+          const worse = item.invert ? direction === 'up' : direction === 'down';
+          return (
+            <article key={item.label} className={`home-ads-metric ${item.accent ? 'home-ads-metric-accent' : ''} ${item.emphasis ? 'home-ads-metric-emphasis' : ''}`}>
+              <p>{item.label}</p>
+              <div><strong title={String(item.value)}>{item.value}</strong>{direction && <span className={worse ? 'is-negative' : 'is-positive'}>{Number(item.trend.changePercent) > 0 ? '+' : ''}{Number(item.trend.changePercent).toFixed(1)}%</span>}</div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SourceStatusPanel({ data, logs }) {
+  const sources = [
+    { key: 'catalog', label: 'Katalog Shopee', meta: data?.dataState?.catalog },
+    { key: 'ads', label: 'Iklan Shopee', meta: data?.dataState?.ads },
+    { key: 'warehouse', label: 'Gudang', meta: data?.dataState?.warehouse },
+  ];
+  const latest = logs[0];
+
+  return (
+    <aside className="home-status-panel" aria-label="Status data dan langkah berikutnya">
+      <div className="home-status-heading"><div><p className="home-section-kicker">Kondisi workspace</p><h2>Status data</h2></div><Database className="text-teal-700" aria-hidden="true" /></div>
+      <div className="home-source-list">
+        {sources.map((source) => <div key={source.key} className="home-source-row"><span>{source.label}</span><StatusBadge status={source.meta?.status || source.meta?.freshness || 'Tidak Tersedia'} compact /></div>)}
+      </div>
+      <div className="home-status-ad-summary">
+        <p className="home-section-kicker">Iklan hari ini</p>
+        <div className="home-status-ad-row"><span>Dilihat · Klik</span><strong>{formatNumber(data?.kpis?.adsImpressions)} · {formatNumber(data?.kpis?.adsClicks)}</strong></div>
+        <div className="home-status-ad-row"><span>Biaya · ROAS</span><strong>{formatIDR(data?.kpis?.adsSpend)} · {data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? 'Belum tersedia' : Number(data.kpis.adsRoas).toFixed(1)}</strong></div>
+      </div>
+      {latest && <p className="home-status-last-sync">Aktivitas terakhir: {latest.jobType?.replaceAll('_', ' ')} · {formatDataTime(latest.timestamp)}</p>}
+    </aside>
+  );
+}
+
+function TopProductsTable({ data }) {
+  return (
+    <section className="home-products surface" aria-labelledby="top-products-title">
+      <header><div><p className="home-section-kicker">Snapshot katalog</p><h2 id="top-products-title">Produk katalog teratas</h2></div><Link href="/shopee">Buka katalog <ArrowRight aria-hidden="true" /></Link></header>
+      <div className="table-scroll"><table><thead><tr><th>Produk</th><th>Harga</th><th>Stok</th><th>Penjualan</th></tr></thead><tbody>
+        {(data?.topProducts || []).slice(0, 5).map((product) => <tr key={product.shopeeItemId}><td><Link href={`/product/${product.shopeeItemId}`} className="home-product-name"><span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded bg-teal-50">{product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="32px" className="object-cover" /> : <Package className="m-1.5 h-5 w-5 text-teal-700" />}</span><span><b>{product.name}</b><small>{product.sku || product.category}</small></span></Link></td><td>{formatIDR(product.price)}</td><td>{formatNumber(product.stock)}</td><td className="font-semibold">{formatNumber(product.salesCount)}</td></tr>)}
+        {!data?.topProducts?.length && <tr><td colSpan="4" className="home-table-empty">Belum ada snapshot katalog.</td></tr>}
+      </tbody></table></div>
+    </section>
+  );
 }
 
 export default function DashboardOverview() {
   const [data, setData] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [traffic, setTraffic] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('real_time');
-  const { selectedStoreId } = useStore();
-  const { startDate, endDate } = useDateRange();
+  const [period] = useState('real_time');
+  const { selectedStoreId, stores } = useStore();
+  const [syncingGuide, setSyncingGuide] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [overview, logData, trafficData] = await Promise.all([
+    const [overview, logData] = await Promise.all([
       fetchDashboardOverview(selectedStoreId, period),
       fetchSyncLogs(),
-      fetchTrafficSources({ startDate, endDate, storeId: selectedStoreId }),
     ]);
     setData(overview);
     setLogs(logData?.logs || []);
-    setTraffic(trafficData);
     setLoading(false);
-  }, [selectedStoreId, period, startDate, endDate]);
+  }, [selectedStoreId, period]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useSnapshotRefresh(loadData);
-
-  const historyAvailable = data?.history?.orderAvailable;
-  // The KPI is one day, not a running total — name the day so it cannot be read as a sum.
-  const latestDay = data?.salesTrend?.length ? data.salesTrend[data.salesTrend.length - 1].day : null;
-  const trend = data?.kpiTrend;
-  const { stores } = useStore();
-  const [syncingGuide, setSyncingGuide] = useState(false);
 
   const handleGuideSync = async () => {
     setSyncingGuide(true);
     try {
       await triggerSyncAndPoll({ storeId: selectedStoreId || null });
       await loadData();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setSyncingGuide(false);
     }
   };
 
+  const historyAvailable = data?.history?.orderAvailable;
+  const trend = data?.kpiTrend;
   const hasConnectedStore = stores.length > 0;
   const hasCatalogData = Boolean(data?.dataState?.catalog?.hasData);
 
   return (
-    <div className="space-y-4">
+    <div className="home-dashboard">
       <PageHeader
         title="Beranda"
-        description="Ringkasan operasional berbasis snapshot lokal. Gunakan Sync pada header untuk memperbarui data dari sumber terhubung."
-        actions={
-          <div className="flex flex-wrap items-center gap-3">
-            <DateRangePicker />
-            <Link href="/settings" className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Pengaturan koneksi</Link>
-          </div>
-        }
+        description="Ringkasan kondisi toko, iklan, dan stok dari sumber yang terhubung — tempat memulai setiap pagi."
       >
-        <div className="flex flex-wrap gap-3">
-          <DataSourceNote meta={data?.dataState?.catalog} />
-          <DataSourceNote meta={data?.dataState?.ads} />
-          <DataSourceNote meta={data?.dataState?.warehouse} />
-        </div>
+        <nav className="home-tabs" aria-label="Ringkasan dashboard">
+          <Link href="/" aria-current="page">Ikhtisar</Link>
+          <Link href="/orders">Penjualan</Link>
+          <Link href="/ads">Iklan</Link>
+          <Link href="/warehouse">Stok</Link>
+        </nav>
       </PageHeader>
 
-      {(!hasConnectedStore || !hasCatalogData) && (
-        <OnboardingGuide
-          hasStore={hasConnectedStore}
-          hasData={hasCatalogData}
-          onSync={handleGuideSync}
-          syncing={syncingGuide}
-        />
-      )}
+      {(!hasConnectedStore || !hasCatalogData) && <div className="home-onboarding"><OnboardingGuide hasStore={hasConnectedStore} hasData={hasCatalogData} onSync={handleGuideSync} syncing={syncingGuide} /></div>}
 
-      {loading ? <MetricLoading /> : (
-        <>
-          <h2 className="text-base font-semibold text-slate-800 mb-2">Performa Iklan</h2>
-          {trend?.previousDate && (
-            <p className="text-xs text-slate-500">
-              Statistik dibandingkan terhadap {trend.previousDate}.
-              {trend.currentIsPartial && ' Hari ini masih berjalan, jadi angkanya belum utuh — penurunan pada panah bisa jadi hanya karena harinya belum selesai.'}
-            </p>
-          )}
-          <div className="fade-in grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
-            <StatTile title="Iklan Dilihat" value={formatNumber(data?.kpis?.adsImpressions)} trend={trend?.adsImpressions} tip="Berapa kali iklan ditayangkan pada periode yang dipilih." />
-            <StatTile title="Jumlah Klik" value={formatNumber(data?.kpis?.adsClicks)} trend={trend?.adsClicks} tip="Jumlah klik pada iklan." />
-            <StatTile title="Persentase Klik" value={data?.kpis?.adsCtr !== null ? formatPercent(data?.kpis?.adsCtr) : '-'} trend={trend?.adsCtr} tip="Persentase klik pada iklan (CTR)." />
-            <StatTile title="Pesanan" value={formatNumber(data?.kpis?.adsOrders)} trend={trend?.adsOrders} tip="Jumlah pesanan yang dihasilkan dari iklan." />
-            <StatTile title="Produk Terjual" value={formatNumber(data?.kpis?.adsItemSold)} trend={trend?.adsItemSold} tip="Jumlah produk yang terjual dari iklan." />
-            <StatTile title="Penjualan dari Iklan" value={formatIDR(data?.kpis?.adsSales)} trend={trend?.adsSales} tip="Total nilai penjualan dari iklan." />
-            <StatTile title="Biaya Iklan" value={formatIDR(data?.kpis?.adsSpend)} trend={trend?.adsSpend} invertTrendColor tip="Total biaya yang dihabiskan untuk iklan." />
-            <StatTile title="ROAS" value={data?.kpis?.adsRoas === null || data?.kpis?.adsRoas === undefined ? '0,00' : `${Number(data.kpis.adsRoas).toFixed(2).replace('.', ',')}`} trend={trend?.adsRoas} accent tip="Return on Ad Spend = penjualan dari iklan ÷ biaya iklan." />
-          </div>
+      {loading ? <MetricLoading /> : <OverviewBand data={data} trend={trend} historyAvailable={historyAvailable} />}
 
-          <h2 className="text-base font-semibold text-slate-800 mt-5 mb-2">Performa Toko & Operasional</h2>
-          <div className="fade-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <MetricCard title="GMV Toko (Keseluruhan)" value={formatIDR(data?.kpis?.totalGmv)} icon={BarChart3} tone="slate" trend={trend?.gmv} tip="Gross Merchandise Value — total nilai pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Pesanan terkonfirmasi pada ${data?.kpiTrend?.currentDate || 'periode ini'}` : data?.history?.message} />
-            <MetricCard title="Pesanan Toko (Keseluruhan)" value={formatNumber(data?.kpis?.totalOrders)} icon={ShoppingBag} tone="slate" trend={trend?.orders} tip="Jumlah pesanan terkonfirmasi dari semua sumber." subtitle={historyAvailable ? `Konversi ${formatPercent(data?.kpis?.conversionRate)} · nilai rata-rata ${formatIDR(data?.kpis?.averageOrderValue)}` : 'Tidak dibuat estimasi'} />
-            {/* A null count means "not measurable" and must not render as a green all-clear. */}
-            <MetricCard
-              title="Selisih stok"
-              value={formatNumber(data?.kpis?.discrepanciesAlerts)}
-              icon={Boxes}
-              tip="Jumlah SKU yang stok Shopee-nya berbeda dari stok gudang. Nilai kosong berarti belum bisa dihitung — bukan berarti nol selisih."
-              tone={data?.kpis?.discrepanciesAlerts === null || data?.kpis?.discrepanciesAlerts === undefined
-                ? 'slate'
-                : Number(data.kpis.discrepanciesAlerts) ? 'amber' : 'emerald'}
-              subtitle={data?.reconciliationTrust && !data.reconciliationTrust.reliable
-                ? data.reconciliationTrust.message
-                : `${formatNumber(data?.kpis?.warehouseUnits)} unit tersedia di snapshot`}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Grafik penjualan tetap terlihat (visual utama). */}
-      {historyAvailable
-        ? <SalesChart data={data?.salesTrend || []} note={data?.lastSyncedAt ? `Sync terakhir: ${formatDataTime(data.lastSyncedAt)}` : undefined} />
-        : <EmptyState title="Histori pesanan belum tersedia" message={data?.history?.message} action={<Link href="/settings" className="text-xs font-semibold text-rose-700 hover:text-rose-800">Buka Pengaturan</Link>} />}
-
-      {/* Panel sekunder dilipat default agar Beranda pendek — klik untuk buka. */}
-      <Collapsible title="Ringkasan Produk (funnel)">
-        <ProductOverviewPanel />
-      </Collapsible>
-
-      <Collapsible title="Cross-check Toko (Shopee vs Gudang)">
-        <StoreCrossCheckPanel />
-      </Collapsible>
-
-      <Collapsible title="Briefing harian">
-        <DailyBriefingCard />
-      </Collapsible>
-
-      <Collapsible title="Panel rinci" subtitle="Aktivitas sync, produk teratas, persediaan, kategori, retur, trafik">
-      <div className="grid gap-3 xl:grid-cols-3">
-        <section className="surface p-5">
-          <div className="flex items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Aktivitas Sync</h2><p className="mt-1 text-xs text-slate-500">Hasil jalur Sync eksplisit dan cron.</p></div><Link href="/settings" className="text-xs font-semibold text-rose-700">Lihat koneksi</Link></div>
-          <div className="mt-4 space-y-3">
-            {logs.length ? logs.slice(0, 6).map((log) => <div key={log.id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-700">{log.jobType.replaceAll('_', ' ')}</p><StatusBadge status={log.status === 'SUCCESS' ? 'Segar' : log.status === 'DEGRADED' ? 'Tertunda' : 'Gagal'} compact /></div><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{log.message}</p><p className="mt-1 text-[11px] text-slate-400">{formatDataTime(log.timestamp)}</p></div>) : <p className="text-sm text-slate-500">Belum ada riwayat Sync.</p>}
-          </div>
-        </section>
-
-        <section className="surface overflow-hidden xl:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Produk katalog teratas</h2><p className="mt-1 text-xs text-slate-500">Urut berdasarkan penjualan snapshot katalog.{data?.topProductsMeta?.message ? ` ${data.topProductsMeta.message}` : ''}</p></div><Link href="/shopee" className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700">Buka katalog <ArrowRight className="h-3.5 w-3.5" /></Link></div>
-          {/* The table is what overflows, so the scroll container has to be the table's
-              own wrapper — on the <section> the header scrolled with it. */}
-          <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="border-y border-slate-200 bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Produk</th><th className="px-4 py-3 font-medium">Harga</th><th className="px-4 py-3 font-medium">Stok</th><th className="px-5 py-3 text-right font-medium">Penjualan</th></tr></thead><tbody className="divide-y divide-slate-100">
-            {(data?.topProducts || []).map((product) => <tr key={product.shopeeItemId} className="hover:bg-slate-50"><td className="px-5 py-3"><Link href={`/product/${product.shopeeItemId}`} className="flex min-w-0 items-center gap-3"><span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md bg-slate-100">{product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="36px" className="object-cover" /> : <Package className="m-2 h-5 w-5 text-slate-400" />}</span><span className="min-w-0"><span className="block max-w-72 truncate font-semibold text-slate-800">{product.name}</span><span className="block truncate text-[11px] text-slate-500">{product.sku || product.category}</span></span></Link></td><td className="px-4 py-3 font-medium text-slate-700">{formatIDR(product.price)}</td><td className="px-4 py-3 text-slate-700">{formatNumber(product.stock)}</td><td className="px-5 py-3 text-right font-semibold text-slate-800">{formatNumber(product.salesCount)}</td></tr>)}
-            {!data?.topProducts?.length && <tr><td colSpan="4" className="px-5 py-8 text-center text-sm text-slate-500">Belum ada snapshot katalog.</td></tr>}
-          </tbody></table></div>
-        </section>
-        <section className="surface p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Status persediaan</h2><p className="mt-1 text-xs text-slate-500">Hasil rekonsiliasi snapshot terakhir.</p></div><TriangleAlert className="h-5 w-5 text-amber-600" /></div><dl className="mt-5 space-y-4"><div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">SKU dalam audit</dt><dd className="font-semibold text-slate-900">{formatNumber(data?.reconciliationSummary?.skus)}</dd></div><div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Selisih terdeteksi</dt><dd className="font-semibold text-slate-900">{formatNumber(data?.reconciliationSummary?.discrepanciesCount)}</dd></div><div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Stok tersedia</dt><dd className="font-semibold text-slate-900">{formatNumber(data?.reconciliationSummary?.totalAvailableUnits)}</dd></div></dl><Link href="/warehouse" className="mt-6 inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Buka gudang</Link></section>
-        <CategoryPieChart
-          data={data?.categorySales || []}
-          title="Pangsa penjualan per kategori"
-          subtitle={data?.categorySalesMeta?.message}
-          message={data?.categorySalesMeta?.message}
-          provenance={data?.categorySalesMeta?.provenance}
-        />
-
-        <section className="surface p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">Pembatalan dan retur</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {data?.orderQuality?.days
-                  ? `${data.orderQuality.days} hari tersimpan (${data.orderQuality.from} s.d. ${data.orderQuality.to})`
-                  : 'Belum ada hari tersimpan.'}
-              </p>
-            </div>
-            <TriangleAlert className="h-5 w-5 text-slate-400" aria-hidden="true" />
-          </div>
-          {data?.orderQuality?.days ? (
-            <dl className="mt-5 space-y-4">
-              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Pesanan batal</dt><dd className="font-semibold text-slate-900">{formatNumber(data.orderQuality.cancelledOrders)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Nilai pesanan batal</dt><dd className="font-semibold text-slate-900">{formatIDR(data.orderQuality.cancelledSales)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Retur / refund</dt><dd className="font-semibold text-slate-900">{formatNumber(data.orderQuality.returnRefundOrders)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-sm text-slate-600">Nilai retur / refund</dt><dd className="font-semibold text-slate-900">{formatIDR(data.orderQuality.returnRefundSales)}</dd></div>
-            </dl>
-          ) : (
-            <p className="mt-5 text-sm leading-6 text-slate-500">{data?.orderQuality?.message}</p>
-          )}
-          {/* Asal angka dinyatakan eksplisit — sebelumnya panel ini tidak menjelaskan
-              pesanan batal/retur itu dihitung dari mana dan atas dasar apa. */}
-          {data?.orderQuality?.provenance && (
-            <dl className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-500">
-              <div><dt className="inline font-semibold text-slate-600">Sumber: </dt><dd className="inline">{data.orderQuality.provenance.source} <span className="font-mono">{data.orderQuality.provenance.endpoint}</span> (tipe pesanan: {data.orderQuality.provenance.orderType})</dd></div>
-              <div><dt className="inline font-semibold text-slate-600">Pesanan batal: </dt><dd className="inline">{data.orderQuality.provenance.cancelled}</dd></div>
-              <div><dt className="inline font-semibold text-slate-600">Retur / refund: </dt><dd className="inline">{data.orderQuality.provenance.returnRefund}</dd></div>
-            </dl>
-          )}
-          {/* Shopee publishes no denominator for a cancellation rate, so none is shown. */}
-          <p className="mt-3 text-[11px] leading-5 text-slate-500">Angka absolut dari Seller Center. Persentase pembatalan tidak dihitung karena penyebutnya tidak tersedia.</p>
-        </section>
-
-        <TrafficSourcePanel traffic={traffic} loading={loading} />
+      <div className="home-workbench">
+        {historyAvailable ? <SalesChart data={data?.salesTrend || []} note={data?.lastSyncedAt ? `Sync terakhir: ${formatDataTime(data.lastSyncedAt)}` : undefined} /> : <EmptyState title="Histori pesanan belum tersedia" message={data?.history?.message} action={<Link href="/settings" className="text-xs font-semibold text-teal-700 hover:text-teal-800">Buka Pengaturan</Link>} />}
+        <SourceStatusPanel data={data} logs={logs} />
       </div>
-      </Collapsible>
+
+      <TopProductsTable data={data} />
+
+      {!loading && <AdsPerformanceRail data={data} trend={trend} />}
+
+      <section className="home-insight-layout" aria-labelledby="insight-title">
+        <header className="home-layout-heading"><div><p className="home-section-kicker">Diagnosis operasional</p><h2 id="insight-title">Ringkasan produk & toko</h2></div><p>Funnel dan cross-check ditampilkan langsung agar masalah tidak tersembunyi di dalam accordion.</p></header>
+        <div className="home-insight-grid">
+          <ProductOverviewPanel />
+          <aside className="home-briefing-slot"><DailyBriefingCard /></aside>
+          <div className="home-crosscheck-slot"><StoreCrossCheckPanel /></div>
+        </div>
+      </section>
+
     </div>
   );
 }

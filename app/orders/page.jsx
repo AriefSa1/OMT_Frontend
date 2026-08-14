@@ -3,17 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  AlertTriangle,
-  BarChart3,
-  PackageCheck,
-  RotateCcw,
-  ShoppingBag,
-  TrendingDown,
-  XCircle,
-} from 'lucide-react';
+import { AlertTriangle, RotateCcw, TrendingDown, XCircle } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
-import MetricCard from '../../components/MetricCard';
 import DateRangePicker from '../../components/DateRangePicker';
 import StatusBadge, { DataSourceNote } from '../../components/StatusBadge';
 import { fetchDashboardOverview } from '../../lib/api';
@@ -54,10 +45,10 @@ export default function OrdersPage() {
   const trend = data?.kpiTrend;
 
   return (
-    <div className="space-y-6">
+    <div className="orders-workspace">
       <PageHeader
-        title="Detail & Riwayat Pesanan"
-        description="Analisis performa pesanan, tren harian GMV, tingkat pembatalan, dan retur toko Shopee Anda."
+        title="Riwayat Pesanan"
+        description="Pantau GMV, pesanan, kualitas transaksi, dan ritme penjualan dari waktu ke waktu."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <DateRangePicker />
@@ -70,13 +61,13 @@ export default function OrdersPage() {
           </div>
         }
       >
-        <div className="flex flex-wrap gap-3">
+        <div className="orders-source-line">
           <DataSourceNote meta={data?.dataState?.catalog} />
         </div>
       </PageHeader>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="orders-summary-loading">
           {Array.from({ length: 4 }).map((_, index) => (
             <div className="skeleton h-32 rounded-xl" key={index} />
           ))}
@@ -84,42 +75,16 @@ export default function OrdersPage() {
       ) : (
         <>
           {/* Main Order KPIs */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="GMV Terkonfirmasi"
-              value={formatIDR(data?.kpis?.totalGmv)}
-              icon={BarChart3}
-              tone="slate"
-              trend={trend?.gmv}
-              subtitle="Nilai penjualan terkonfirmasi pada snapshot terakhir"
-            />
-            <MetricCard
-              title="Total Pesanan"
-              value={formatNumber(data?.kpis?.totalOrders)}
-              icon={ShoppingBag}
-              tone="slate"
-              trend={trend?.orders}
-              subtitle={`AOV ${formatIDR(data?.kpis?.averageOrderValue)}`}
-            />
-            <MetricCard
-              title="Tingkat Konversi"
-              value={formatPercent(data?.kpis?.conversionRate)}
-              icon={PackageCheck}
-              tone="emerald"
-              subtitle="Persentase pembeli dari pengunjung toko"
-            />
-            <MetricCard
-              title="Pesanan Dibatalkan"
-              value={orderQuality?.cancelledOrders !== null ? formatNumber(orderQuality?.cancelledOrders) : '0'}
-              icon={XCircle}
-              tone={orderQuality?.cancelledOrders > 0 ? 'rose' : 'slate'}
-              subtitle={orderQuality?.cancelledSales ? `Kerugian GMV: ${formatIDR(orderQuality.cancelledSales)}` : 'Tidak ada pembatalan'}
-            />
-          </div>
+          <section className="orders-summary-band" aria-label="Ringkasan pesanan">
+            <article><p>GMV terkonfirmasi</p><strong>{formatIDR(data?.kpis?.totalGmv)}</strong><span>{trend?.gmv?.direction ? `${Number(trend.gmv.changePercent) > 0 ? '+' : ''}${Number(trend.gmv.changePercent).toFixed(1)}% vs pembanding` : 'Belum ada pembanding'}</span></article>
+            <article><p>Pesanan</p><strong>{formatNumber(data?.kpis?.totalOrders)}</strong><span>{trend?.orders?.direction ? `${Number(trend.orders.changePercent) > 0 ? '+' : ''}${Number(trend.orders.changePercent).toFixed(1)}% vs pembanding` : `${formatNumber(data?.kpis?.totalUnits)} unit tercatat`}</span></article>
+            <article><p>Nilai rata-rata pesanan</p><strong>{formatIDR(data?.kpis?.averageOrderValue)}</strong><span>GMV per pesanan terkonfirmasi</span></article>
+            <article className={Number(orderQuality?.cancelledOrders) > 0 ? 'is-attention' : ''}><p>Pembatalan</p><strong>{formatNumber(orderQuality?.cancelledOrders)}</strong><span>{orderQuality?.cancelledSales == null ? 'Nilai belum tersedia' : `${formatIDR(orderQuality.cancelledSales)} GMV dibatalkan`}</span></article>
+          </section>
 
           {/* Order Quality & Refunds Card */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+          <div className="orders-workbench">
+            <div className="orders-chart-panel">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Grafik Tren Penjualan & Pesanan Harian</h2>
@@ -135,7 +100,7 @@ export default function OrdersPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+            <aside className="orders-quality-panel">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
                   <RotateCcw className="h-4 w-4" />
@@ -153,7 +118,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-semibold text-slate-700">Pesanan Dibatalkan</span>
                   </div>
                   <span className="text-xs font-bold text-slate-900">
-                    {formatNumber(orderQuality?.cancelledOrders || 0)} pesanan
+                    {formatNumber(orderQuality?.cancelledOrders)} pesanan
                   </span>
                 </div>
 
@@ -163,7 +128,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-semibold text-slate-700">Nilai GMV Dibatalkan</span>
                   </div>
                   <span className="text-xs font-bold text-slate-900">
-                    {formatIDR(orderQuality?.cancelledSales || 0)}
+                    {formatIDR(orderQuality?.cancelledSales)}
                   </span>
                 </div>
 
@@ -173,7 +138,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-semibold text-slate-700">Pesanan Retur / Refund</span>
                   </div>
                   <span className="text-xs font-bold text-slate-900">
-                    {formatNumber(orderQuality?.returnRefundOrders || 0)} pesanan
+                    {formatNumber(orderQuality?.returnRefundOrders)} pesanan
                   </span>
                 </div>
 
@@ -183,7 +148,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-semibold text-slate-700">Nilai GMV Retur</span>
                   </div>
                   <span className="text-xs font-bold text-slate-900">
-                    {formatIDR(orderQuality?.returnRefundSales || 0)}
+                    {formatIDR(orderQuality?.returnRefundSales)}
                   </span>
                 </div>
               </div>
@@ -192,12 +157,12 @@ export default function OrdersPage() {
                 <p className="font-semibold mb-0.5">Catatan Sumber Data:</p>
                 {orderQuality?.provenance?.cancelled || 'Data pembatalan diambil langsung dari Shopee Data Center.'}
               </div>
-            </div>
+            </aside>
           </div>
 
           {/* Daily Orders History Table */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-            <div className="border-b border-slate-200 bg-slate-50/50 px-5 py-4 flex items-center justify-between">
+          <section className="orders-ledger">
+            <div className="orders-ledger-header">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Tabel Riwayat Pesanan Harian</h3>
                 <p className="text-xs text-slate-500">Rincian GMV, pesanan terkonfirmasi, dan pembatalan per tanggal.</p>
@@ -207,7 +172,7 @@ export default function OrdersPage() {
               </span>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50 font-bold text-slate-600">
                   <tr>
@@ -229,7 +194,7 @@ export default function OrdersPage() {
                     salesTrend.map((row) => (
                       <tr key={row.day} className="hover:bg-slate-50/80 transition">
                         <td className="px-5 py-3.5 font-bold text-slate-800">{row.day}</td>
-                        <td className="px-5 py-3.5 text-right font-extrabold text-slate-900">
+                        <td className="px-5 py-3.5 text-right font-extrabold text-teal-800">
                           {formatIDR(row.gmv)}
                         </td>
                         <td className="px-5 py-3.5 text-right font-bold text-slate-700">
@@ -247,7 +212,7 @@ export default function OrdersPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         </>
       )}
     </div>

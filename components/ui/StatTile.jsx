@@ -20,14 +20,14 @@ export default function StatTile({ title, value, trend = null, invertTrendColor 
     : direction === 'flat' ? 'sama' : '';
 
   return (
-    <div className={cn('surface min-w-0 px-3.5 py-2.5', accent && 'ring-1 ring-rose-200')}>
-      <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+    <div className={cn('surface metric-tile min-w-0 px-3.5 py-2.5', accent && 'ring-1 ring-teal-300')}>
+      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.04em] text-slate-500">
         <span className="truncate">{title}</span>
         {tip && <InfoTooltip label={title}>{tip}</InfoTooltip>}
       </div>
       <div className="mt-0.5 flex items-baseline justify-between gap-2">
         <span
-          className="min-w-0 truncate text-lg font-semibold text-slate-900"
+          className="min-w-0 truncate text-xl font-bold tracking-[-0.035em] text-slate-950"
           title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
         >
           {value}

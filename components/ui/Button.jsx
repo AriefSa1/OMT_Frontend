@@ -10,22 +10,22 @@ import { cn } from '../../lib/utils';
 // Disabled/loading meredupkan warna variannya sendiri (opacity) alih-alih berubah
 // jadi abu — jadi spinner saat loading tetap kontras dan state konsisten antar varian.
 const VARIANTS = {
-  primary: 'bg-rose-600 text-white shadow-sm hover:bg-rose-700 disabled:opacity-60',
-  secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50',
-  ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50',
-  subtle: 'border border-rose-100 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50',
+  primary: 'bg-teal-600 text-white shadow-sm hover:bg-teal-700 disabled:opacity-60',
+  secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-teal-50 hover:border-teal-300 disabled:opacity-50',
+  ghost: 'text-slate-600 hover:bg-teal-50 hover:text-teal-900 disabled:opacity-50',
+  subtle: 'border border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50',
   // neutral: aksi "simpan/konfirmasi" bertekanan tinggi tapi non-brand (slate gelap).
   neutral: 'bg-slate-800 text-white shadow-sm hover:bg-slate-700 disabled:opacity-60',
   // info: aksi sekunder informatif (tes koneksi, cek) — indigo lembut.
-  info: 'border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50',
+  info: 'border border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50',
   danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:opacity-60',
 };
 
 const SIZES = {
-  sm: 'h-8 gap-1.5 rounded-md px-2.5 text-[11px]',
-  md: 'h-9 gap-2 rounded-md px-3.5 text-xs',
-  lg: 'h-10 gap-2 rounded-lg px-4 text-sm',
-  icon: 'h-9 w-9 rounded-md',
+  sm: 'h-8 gap-1.5 rounded-[5px] px-2.5 text-[11px]',
+  md: 'h-9 gap-2 rounded-[5px] px-3.5 text-xs',
+  lg: 'h-10 gap-2 rounded-[5px] px-4 text-sm',
+  icon: 'h-9 w-9 rounded-[5px]',
 };
 
 const ICON_SIZE = { sm: 'h-3.5 w-3.5', md: 'h-4 w-4', lg: 'h-4 w-4', icon: 'h-4 w-4' };
@@ -55,7 +55,7 @@ const Button = forwardRef(function Button(
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex shrink-0 select-none items-center justify-center font-semibold transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 focus-visible:ring-offset-1',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 focus-visible:ring-offset-1',
         'disabled:cursor-not-allowed',
         VARIANTS[variant] || VARIANTS.primary,
         SIZES[size] || SIZES.md,

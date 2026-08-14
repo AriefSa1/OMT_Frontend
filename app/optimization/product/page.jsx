@@ -30,7 +30,7 @@ export default function ProductOptimizationPage() {
   const score = data?.overallProductHealthScore;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Optimasi produk"
         description="Rekomendasi listing dari snapshot katalog Shopee. Sistem tidak mengubah Seller Center; setiap rekomendasi ditindaklanjuti sebagai tugas."

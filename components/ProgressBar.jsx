@@ -9,7 +9,7 @@
  *  - Indeterminate: set `indeterminate` (abaikan `value`) untuk pita yang meluncur —
  *    saat durasi/porsi kerja tidak diketahui sama sekali.
  *
- * Warna mengikuti aksen merek (rose). Menghormati `prefers-reduced-motion` lewat kelas
+ * Warna mengikuti aksen merek (teal). Menghormati `prefers-reduced-motion` lewat kelas
  * di globals.css.
  */
 export default function ProgressBar({
@@ -46,7 +46,7 @@ export default function ProgressBar({
           <span className="progress-indeterminate" />
         ) : (
           <span
-            className={`absolute inset-y-0 left-0 bg-rose-600 ${radius}`}
+            className={`absolute inset-y-0 left-0 bg-teal-600 ${radius}`}
             style={{ width: `${clamped}%`, transition: 'width 300ms cubic-bezier(0.16, 1, 0.3, 1)' }}
           />
         )}

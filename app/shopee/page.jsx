@@ -27,7 +27,7 @@ export default function ShopeeCatalogPage() {
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   // Mode tampilan katalog: 'cards' = galeri kartu (visual), 'table' = ringkasan + tabel padat.
-  const [view, setView] = useState('cards');
+  const [view, setView] = useState('table');
   const { selectedStoreId } = useStore();
   // Baris varian dibuka per produk. Varian sudah ikut dalam respons katalog, jadi
   // membukanya tidak memicu permintaan baru.
@@ -94,30 +94,30 @@ export default function ShopeeCatalogPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Katalog Shopee" description="Snapshot katalog dari Seller Center. Pencarian dan pengurutan membaca data lokal; Sync mengambil pembaruan secara eksplisit." actions={<Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="disabled:bg-rose-600 disabled:opacity-70">{syncing ? 'Menyinkronkan' : 'Sync katalog'}</Button>}>
+    <div className="catalog-workspace">
+      <PageHeader title="Katalog Shopee" description="Telusuri snapshot produk, varian, stok, dan penjualan dalam satu daftar kerja." actions={<Button variant="primary" onClick={sync} loading={syncing} icon={RefreshCw} className="catalog-sync-button">{syncing ? 'Menyinkronkan' : 'Sync katalog'}</Button>}>
         <DataSourceNote meta={catalog?.meta} />
       </PageHeader>
 
       {/* Strip ringkasan — mengisi area atas yang sebelumnya kosong. Angka per-halaman
           diberi label "di halaman ini" karena katalog dipaginasi. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="catalog-summary-band">
         <div className="surface p-4"><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Total Produk</div><div className="mt-2 text-xl font-bold text-slate-900">{formatNumber(totalProducts)}</div></div>
         <div className="surface p-4"><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Kategori</div><div className="mt-2 text-xl font-bold text-slate-900">{formatNumber(categories.length)}</div></div>
         <div className="surface p-4"><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ditampilkan</div><div className="mt-2 text-xl font-bold text-slate-900">{formatNumber(visibleProducts.length)}</div><div className="mt-1 text-[10px] text-slate-400">di halaman ini</div></div>
-        <div className="surface p-4"><div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Stok Menipis</div><div className={`mt-2 text-xl font-bold ${lowStockOnPage ? 'text-rose-600' : 'text-slate-900'}`}>{formatNumber(lowStockOnPage)}</div><div className="mt-1 text-[10px] text-slate-400">≤5 unit · halaman ini</div></div>
+        <div className={`catalog-summary-item ${lowStockOnPage ? 'is-attention' : ''}`}><p>Stok menipis</p><strong>{formatNumber(lowStockOnPage)}</strong><span>≤5 unit · halaman ini</span></div>
       </div>
 
-      <section className="surface p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto_auto]">
-          <label className="relative block"><span className="sr-only">Cari produk</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama atau SKU" className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400" /></label>
-          <label><span className="sr-only">Kategori</span><select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="">Semua kategori</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-          <label><span className="sr-only">Urutkan menurut</span><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="ui-select h-10 w-full rounded-md px-3 text-sm text-slate-700"><option value="updatedAt">Pembaruan</option><option value="salesCount">Penjualan</option><option value="views">Tayangan</option><option value="stock">Stok</option><option value="price">Harga</option><option value="name">Nama</option></select></label>
-          <Button variant="secondary" icon={ArrowUpDown} onClick={() => { setDirection(direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} className="h-10">{direction === 'asc' ? 'Naik' : 'Turun'}</Button>
+      <section className="catalog-controls">
+        <div className="catalog-filter-grid">
+          <label className="catalog-search"><span className="sr-only">Cari produk</span><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari produk atau SKU" /></label>
+          <label className="catalog-filter"><span>Kategori</span><select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className="ui-select"><option value="">Semua kategori</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+          <label className="catalog-filter"><span>Urutkan</span><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="ui-select"><option value="updatedAt">Pembaruan</option><option value="salesCount">Penjualan</option><option value="views">Tayangan</option><option value="stock">Stok</option><option value="price">Harga</option><option value="name">Nama</option></select></label>
+          <Button variant="secondary" icon={ArrowUpDown} onClick={() => { setDirection(direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} className="catalog-direction">{direction === 'asc' ? 'Naik' : 'Turun'}</Button>
           {/* Pengalih mode tampilan: Kartu (galeri) atau Tabel (padat) */}
-          <div className="inline-flex h-10 items-center gap-1 rounded-md border border-slate-300 bg-slate-50 p-1">
-            <button type="button" onClick={() => setView('cards')} aria-pressed={view === 'cards'} title="Tampilan kartu" className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition-colors ${view === 'cards' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}><LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Kartu</span></button>
-            <button type="button" onClick={() => setView('table')} aria-pressed={view === 'table'} title="Tampilan tabel" className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition-colors ${view === 'table' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}><List className="h-4 w-4" /><span className="hidden sm:inline">Tabel</span></button>
+          <div className="catalog-view-switch">
+            <button type="button" onClick={() => setView('table')} aria-pressed={view === 'table'} title="Tampilan daftar" className={view === 'table' ? 'is-active' : ''}><List /><span>Daftar</span></button>
+            <button type="button" onClick={() => setView('cards')} aria-pressed={view === 'cards'} title="Tampilan kartu" className={view === 'cards' ? 'is-active' : ''}><LayoutGrid /><span>Grid</span></button>
           </div>
         </div>
       </section>
@@ -132,23 +132,23 @@ export default function ShopeeCatalogPage() {
           ) : !visibleProducts.length ? (
             <div className="surface"><EmptyState title="Produk tidak ditemukan" message={catalog?.meta?.message || 'Ubah filter atau jalankan Sync katalog.'} /></div>
           ) : (
-            <div className="fade-in grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="catalog-card-grid fade-in">
               {visibleProducts.map((product) => (
                 <button
                   key={product.shopeeItemId}
                   type="button"
                   onClick={() => openDetail(product)}
-                  className="group surface overflow-hidden text-left transition-shadow hover:shadow-md"
+                  className="catalog-card group"
                 >
-                  <div className="relative aspect-square bg-slate-100">
+                  <div className="catalog-card-image">
                     {product.imageUrl
                       ? <Image src={product.imageUrl} alt="" fill sizes="(max-width:640px) 50vw, 20vw" className="object-cover transition-transform group-hover:scale-105" />
                       : <Package className="absolute inset-0 m-auto h-8 w-8 text-slate-300" />}
                     {product.variationSummary?.count ? (
-                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 shadow-sm"><Layers className="h-3 w-3" />{product.variationSummary.count}</span>
+                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 shadow-sm"><Layers className="h-3 w-3" />{product.variationSummary.count} varian</span>
                     ) : null}
                   </div>
-                  <div className="p-3">
+                  <div className="catalog-card-body">
                     <p className="line-clamp-2 min-h-[2.5rem] text-xs font-semibold text-slate-800">{product.name}</p>
                     <p className="mt-1 truncate text-[11px] text-slate-400">{product.sku || product.shopeeItemId}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
@@ -167,8 +167,8 @@ export default function ShopeeCatalogPage() {
 
       {/* ---------- MODE TABEL (padat) ---------- */}
       {view === 'table' && (
-        <section className="surface overflow-hidden">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Daftar produk</h2><p className="mt-1 text-xs text-slate-500">Klik baris untuk ringkasan cepat dan detail produk.</p></div><SlidersHorizontal className="h-4 w-4 text-slate-500" /></div>
+        <section className="catalog-list">
+          <div className="catalog-list-header"><div><p>Snapshot katalog</p><h2>Produk & varian</h2><span>Klik produk untuk ringkasan cepat; buka jumlah varian untuk melihat komposisi produk.</span></div><SlidersHorizontal aria-hidden="true" /></div>
           <div className="table-scroll"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-5 py-3 font-medium">Produk</th><th className="px-4 py-3 font-medium">Kategori</th><th className="px-4 py-3 font-medium">Varian</th><th className="px-4 py-3 text-right font-medium">Harga</th><th className="px-4 py-3 text-right font-medium">Stok</th><th className="px-4 py-3 text-right font-medium">Penjualan</th><th className="px-5 py-3 text-right font-medium">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">
             {loading && Array.from({ length: 8 }).map((_, index) => <tr key={index}><td colSpan="7" className="px-5 py-3"><div className="skeleton h-8 rounded-md" /></td></tr>)}
             {!loading && visibleProducts.map((product) => {

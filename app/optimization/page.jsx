@@ -26,7 +26,7 @@ const SECTIONS = [
 
 export default function OptimizationHubPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Optimasi"
         description="Tiga sudut pandang atas snapshot yang sama. Rekomendasi hanya muncul bila metriknya tersimpan; sistem tidak membuat perubahan otomatis ke Seller Center."

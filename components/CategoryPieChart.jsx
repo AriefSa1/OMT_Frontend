@@ -3,7 +3,7 @@
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-const COLORS = ['#d92d70', '#b4235f', '#8f1d4b', '#344054', '#667085', '#98a2b3'];
+const COLORS = ['#0f9d8a', '#08776d', '#65c7b7', '#c28728', '#6b7c80', '#b8ccc8'];
 
 export default function CategoryPieChart({
   data = [],
@@ -59,7 +59,7 @@ export default function CategoryPieChart({
                 <span className="flex min-w-0 items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: category.color || COLORS[index % COLORS.length] }}
+                  style={{ backgroundColor: category.color || COLORS[index % COLORS.length] }}
                     aria-hidden="true"
                   />
                   <span className="truncate text-slate-600" title={category.name}>{category.name}</span>

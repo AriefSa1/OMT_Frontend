@@ -137,7 +137,7 @@ export default function AccountPage() {
   const summary = data?.summary || { totalStores: 0, activeStores: 0, totalProducts: 0 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Detail Akun"
         description="Informasi akun Anda, toko yang Anda kelola, dan pengaturan keamanan."
@@ -147,9 +147,9 @@ export default function AccountPage() {
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
         {/* Kolom kiri: profil + keamanan */}
-        <div className="space-y-6 lg:col-span-1">
+        <div className="min-w-0 space-y-4 lg:col-span-1">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-4">
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-xl font-bold text-rose-700">
@@ -170,8 +170,8 @@ export default function AccountPage() {
         </div>
 
         {/* Kolom kanan: ringkasan + daftar toko */}
-        <div className="space-y-6 lg:col-span-2">
-          <div className="grid grid-cols-3 gap-4">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             {loading ? (
               [0, 1, 2].map((i) => (
                 <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

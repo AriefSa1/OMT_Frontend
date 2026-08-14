@@ -216,7 +216,7 @@ export default function SettingsPage() {
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title="Pengaturan" description="Kelola multi-toko Shopee, koneksi PDC Gudang, dan jadwal pembaruan snapshot." />
 
       {message && (
